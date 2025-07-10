@@ -24,6 +24,7 @@ class MCP2OSCStarter {
 
     try {
       await this.checkNodeVersion();
+      await this.checkPortAvailability();
       await this.setupDirectories();
       await this.installDependencies();
       await this.startServices();
@@ -51,6 +52,56 @@ class MCP2OSCStarter {
       console.log('📁 Creating logs directory...');
       await mkdir(logsDir, { recursive: true });
     }
+  }
+
+  async checkPortAvailability() {
+    console.log('🔍 Checking port availability...');
+    
+    const portsToCheck = [3001, 3002];
+    const usedPorts = [];
+    
+    for (const port of portsToCheck) {
+      try {
+        const { execSync } = await import('child_process');
+        const result = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+        if (result.trim()) {
+          usedPorts.push(port);
+        }
+      } catch (error) {
+        // Port is available (lsof returns non-zero when no processes found)
+      }
+    }
+    
+    if (usedPorts.length > 0) {
+      console.log(`⚠️  Ports in use: ${usedPorts.join(', ')}`);
+      console.log('🛑 Stopping existing processes...');
+      
+      // Import and run stop script
+      const { execSync } = await import('child_process');
+      execSync('node stop.js', { cwd: __dirname, stdio: 'inherit' });
+      
+      // Wait for processes to stop
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Check again
+      const stillUsed = [];
+      for (const port of usedPorts) {
+        try {
+          const result = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          if (result.trim()) {
+            stillUsed.push(port);
+          }
+        } catch (error) {
+          // Port is now available
+        }
+      }
+      
+      if (stillUsed.length > 0) {
+        throw new Error(`Ports still in use: ${stillUsed.join(', ')}. Please run 'npm run stop' manually.`);
+      }
+    }
+    
+    console.log('✅ Ports are available');
   }
 
   async installDependencies() {

@@ -7,11 +7,12 @@
   "scripts": {
     "setup": "node setup.js",
     "configure": "node configure.js",
-    "start": "node start.js",
+    "start": "node dashboard-server.js",
     "stop": "node stop.js",
     "server": "node mcp-server.js",
     "dashboard": "node dashboard-server.js",
     "test-clean": "node test-clean-server.js",
+    "test-basic": "node test-basic-mcp.js",
     "web": "cd web-dashboard && npm run dev",
     "build": "cd web-dashboard && npm run build",
     "test": "node tests/run-all-tests.js",
@@ -40,7 +41,9 @@
   "author": "MCP2OSC Team",
   "license": "MIT",
   "dependencies": {
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "sqlite3": "^5.1.6",
+    "dotenv": "^16.3.1"
   },
   "devDependencies": {
     "eslint": "^8.57.0"
