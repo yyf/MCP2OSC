@@ -1,0 +1,56 @@
+{
+  "name": "mcp2osc",
+  "version": "1.0.0",
+  "description": "Bridge application that translates MCP messages to OSC messages in real-time",
+  "type": "module",
+  "main": "mcp-server.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "configure": "node configure.js",
+    "start": "node start.js",
+    "stop": "node stop.js",
+    "server": "node mcp-server.js",
+    "dashboard": "node dashboard-server.js",
+    "test-clean": "node test-clean-server.js",
+    "web": "cd web-dashboard && npm run dev",
+    "build": "cd web-dashboard && npm run build",
+    "test": "node tests/run-all-tests.js",
+    "test:integration": "node tests/mcp-integration.test.js",
+    "test:e2e": "node tests/e2e-pipeline.test.js",
+    "dev": "npm run server & npm run web",
+    "logs": "tail -f logs/mcp2osc.log",
+    "clean": "rm -rf logs/* web-dashboard/dist",
+    "start:prod": "NODE_ENV=production node mcp-server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "osc",
+    "opensoundcontrol",
+    "model-context-protocol",
+    "claude",
+    "maxmsp",
+    "processing",
+    "creative-coding",
+    "ai",
+    "llm"
+  ],
+  "author": "MCP2OSC Team",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/mcp2osc.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-org/mcp2osc/issues"
+  },
+  "homepage": "https://github.com/your-org/mcp2osc#readme"
+}
