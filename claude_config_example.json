@@ -3,7 +3,7 @@
     "mcp2osc": {
       "command": "/opt/homebrew/bin/node",
       "args": [
-        "/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/mcp-server.js"
+        "/Users/yyf/Code/Prototypes/2025-7/MCP2OSC/mcp-server-clean.js"
       ]
     }
   }
