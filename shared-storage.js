@@ -72,13 +72,14 @@ function saveMessages(messages) {
     }
 }
 
-export function addOSCMessage(address, args, source, port) {
+export function addOSCMessage(address, args, source, port, direction = 'inbound') {
     const message = {
         address,
         args,
         source,
         port,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        direction // 'inbound' from MaxMSP, 'outbound' to MaxMSP
     };
     
     // Load existing messages
@@ -93,7 +94,7 @@ export function addOSCMessage(address, args, source, port) {
     // Save back to file
     saveMessages(messages);
     
-    console.log(`[SHARED STORAGE FILE] OSC stored: ${address} from ${source}:${port} (total: ${messages.length})`);
+    console.log(`[SHARED STORAGE FILE] OSC stored: ${address} ${direction} ${source}:${port} (total: ${messages.length})`);
     console.log(`[SHARED STORAGE FILE] Absolute path: ${STORAGE_FILE}`);
     
     return message;

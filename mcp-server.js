@@ -301,6 +301,16 @@ class PureMCPServer {
                 addressFilter: {
                   type: 'string',
                   description: 'Filter messages by address pattern (optional, substring match)'
+                },
+                includeOutbound: {
+                  type: 'boolean',
+                  description: 'Include outbound messages sent by Claude (default: false)',
+                  default: false
+                },
+                includeUserContext: {
+                  type: 'boolean',
+                  description: 'Include recent user query context from activity log (default: false)',
+                  default: false
                 }
               }
             }
@@ -311,7 +321,7 @@ class PureMCPServer {
   }
 
   async getReceivedOSCMessages(args) {
-    const { limit = 10, since = null, addressFilter = null } = args;
+    const { limit = 10, since = null, addressFilter = null, includeOutbound = false, includeUserContext = false } = args;
     
     // Get messages from shared storage (file-based) instead of local array
     let messages = getOSCMessages(100); // Get more than needed for filtering
@@ -321,6 +331,8 @@ class PureMCPServer {
       requestedLimit: limit, 
       since, 
       addressFilter,
+      includeOutbound,
+      includeUserContext,
       storageFile: 'absolute path will be shown by shared-storage.js'
     });
     
@@ -350,16 +362,16 @@ class PureMCPServer {
             this.logActivity('Debug: FALLBACK - Using direct file data since getOSCMessages() failed');
             messages = data;
           }
-          
-          // CRITICAL FIX: If file has messages but getOSCMessages returned empty, use file data directly
-          if (data.length > 0 && messages.length === 0) {
-            this.logActivity(`Debug: FALLBACK - Using direct file data since getOSCMessages() failed`);
-            messages = data;
-          }
         }
       } catch (error) {
         this.logActivity(`Debug: Error checking file:`, { error: error.message });
       }
+    }
+    
+    // Filter by direction if specified
+    if (!includeOutbound) {
+      messages = messages.filter(msg => !msg.direction || msg.direction === 'inbound');
+      this.logActivity(`Debug: After direction filter (inbound only): ${messages.length} messages`);
     }
     
     // Filter by address if specified
@@ -379,6 +391,37 @@ class PureMCPServer {
     messages = messages.slice(-limit);
     this.logActivity(`Debug: Final message count: ${messages.length}`);
     
+    // Prepare user context if requested
+    let userContext = '';
+    if (includeUserContext) {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const logFile = path.join(path.dirname(fileURLToPath(import.meta.url)), 'logs', 'mcp2osc.log');
+        
+        if (fs.existsSync(logFile)) {
+          const logContent = fs.readFileSync(logFile, 'utf8');
+          const logLines = logContent.split('\n');
+          
+          // Get recent user queries (last 5)
+          const userQueries = logLines
+            .filter(line => line.includes('User Query:'))
+            .slice(-5)
+            .map(line => {
+              const timestamp = line.substring(0, 24);
+              const query = line.substring(line.indexOf('User Query:') + 12);
+              return `${timestamp}: ${query}`;
+            });
+          
+          if (userQueries.length > 0) {
+            userContext = `\n\n📝 **Recent User Context:**\n${userQueries.join('\n')}\n`;
+          }
+        }
+      } catch (error) {
+        this.logActivity('Debug: Error reading user context:', { error: error.message });
+      }
+    }
+    
     if (messages.length === 0) {
       this.logActivity('Debug: No messages found, returning default response');
       return "📭 **No OSC Messages Received**\n\n" +
@@ -388,25 +431,27 @@ class PureMCPServer {
              "2. Use address patterns like `/frommax/data` or `/feedback/control`\n" +
              "3. Send some test messages and run this tool again\n\n" +
              "🔧 **Example MaxMSP setup:** `udpsend 127.0.0.1 7501`\n\n" +
-             "🔍 **Debug Info:** Checked shared storage file but found no messages.";
+             "🔍 **Debug Info:** Checked shared storage file but found no messages." + userContext;
     }
     
     // Build response with actual messages
-    let response = `📨 **Received OSC Messages** (${messages.length} recent)\n\n`;
+    let response = `📨 **OSC Messages** (${messages.length} recent${includeOutbound ? ', inbound + outbound' : ', inbound only'})\n\n`;
     
     messages.forEach((msg, index) => {
       const time = new Date(msg.timestamp).toLocaleTimeString();
-      response += `**${index + 1}. ${msg.address}**\n`;
+      const direction = msg.direction === 'outbound' ? '→ OUT' : '← IN';
+      response += `**${index + 1}. ${msg.address}** ${direction}\n`;
       response += `   Time: ${time}\n`;
-      response += `   Source: ${msg.source}:${msg.port}\n`;
+      response += `   ${msg.direction === 'outbound' ? 'Target' : 'Source'}: ${msg.source}:${msg.port}\n`;
       if (msg.args && msg.args.length > 0) {
         response += `   Arguments: [${msg.args.join(', ')}]\n`;
       }
       response += '\n';
     });
     
-    response += `💡 **These messages were sent from your creative applications to MCP2OSC.**\n`;
+    response += `💡 **${includeOutbound ? 'Complete OSC conversation showing both directions' : 'Inbound messages from your creative applications'}.**\n`;
     response += `🔄 **You can now use this data to respond with new OSC messages or process the information.**`;
+    response += userContext;
     
     this.logActivity(`Debug: Returning response with ${messages.length} messages`);
     
@@ -599,8 +644,11 @@ class PureMCPServer {
           await this.logOSCMessage('outbound', address, oscArgs, host, port);
           reject(new Error(`Failed to send OSC message: ${error.message}`));
         } else {
-          // Log successful OSC message
+          // Log successful OSC message to database
           const oscId = await this.logOSCMessage('outbound', address, oscArgs, host, port);
+          
+          // ENHANCEMENT: Also log to shared storage so Claude can see outbound messages
+          addOSCMessage(address, oscArgs, host, port, 'outbound');
           
           this.logActivity(`OSC message sent: ${address} [${oscArgs.join(', ')}] → ${host}:${port}`, { 
             address, 
