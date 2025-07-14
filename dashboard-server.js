@@ -701,7 +701,7 @@ class DashboardServer {
 </head>
 <body>
     <div class="header">
-        <h1>🎵 MCP2OSC Dashboard</h1>
+        <h1>MCP2OSC Dashboard</h1>
         <p>Status: <span id="connection-status" class="disconnected">Connecting...</span></p>
     </div>
 
