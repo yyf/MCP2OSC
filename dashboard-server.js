@@ -75,7 +75,7 @@ class DashboardServer {
   startMCPServer() {
     console.log('🔧 Starting clean MCP server for Claude...');
     
-    this.mcpProcess = spawn('node', ['mcp-server-clean.js'], {
+    this.mcpProcess = spawn('node', ['mcp-server.js'], {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: __dirname,
       env: { ...process.env, NODE_ENV: 'production' }

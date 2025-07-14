@@ -26,7 +26,7 @@ A bridge application that translates Model Context Protocol (MCP) message to Ope
      "mcpServers": {
        "mcp2osc": {
          "command": "/opt/homebrew/bin/node",
-         "args": ["/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/mcp-server-clean.js"]
+         "args": ["/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/mcp-server.js"]
        }
      }
    }
