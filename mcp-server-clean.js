@@ -11,6 +11,7 @@ import { existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import MCP2OSCDatabase from './database.js';
+import { addOSCMessage, getOSCMessages } from './shared-storage.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -46,14 +47,21 @@ class PureMCPServer {
     // In MCP mode, completely silence all output except JSON responses
     process.stderr.write = () => {};
     
+    // Log that we're starting to listen
+    this.logActivity('MCP server starting - waiting for stdin data');
+    
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', (data) => {
+      this.logActivity('MCP server received stdin data', { dataLength: data.length });
+      
       const lines = data.toString().split('\n').filter(line => line.trim());
       for (const line of lines) {
         try {
           const message = JSON.parse(line);
+          this.logActivity('MCP server parsed message', { method: message.method, id: message.id });
           this.handleMessage(message);
         } catch (error) {
+          this.logActivity('MCP server JSON parse error', { error: error.message, line });
           // Send error response for malformed JSON
           this.sendError(null, -32700, 'Parse error');
         }
@@ -61,28 +69,19 @@ class PureMCPServer {
     });
 
     process.stdin.on('end', () => {
+      this.logActivity('MCP server stdin ended');
       process.exit(0);
     });
+    
+    this.logActivity('MCP server stdin setup complete');
   }
 
   async initializeOSC() {
     try {
       oscSendSocket = createSocket('udp4');
-      oscReceiveSocket = createSocket('udp4');
       
-      // Setup OSC receiver
-      oscReceiveSocket.on('message', (buffer, rinfo) => {
-        this.handleIncomingOSC(buffer, rinfo);
-      });
-      
-      oscReceiveSocket.on('error', (error) => {
-        if (!IS_MCP_MODE) console.warn('OSC receive socket error:', error.message);
-      });
-      
-      // Bind the receive socket
-      oscReceiveSocket.bind(CONFIG.OSC_RECEIVE_PORT, CONFIG.OSC_HOST, () => {
-        this.logActivity(`OSC receiver listening on ${CONFIG.OSC_HOST}:${CONFIG.OSC_RECEIVE_PORT}`);
-      });
+      // Note: OSC receiving is handled by dashboard server to avoid port conflicts
+      // This MCP server only sends OSC messages and reads received messages from shared storage
       
       // Initialize database (optional - don't fail if it doesn't work)
       try {
@@ -314,40 +313,93 @@ class PureMCPServer {
   async getReceivedOSCMessages(args) {
     const { limit = 10, since = null, addressFilter = null } = args;
     
-    let messages = [...receivedOSCMessages];
+    // Get messages from shared storage (file-based) instead of local array
+    let messages = getOSCMessages(100); // Get more than needed for filtering
+    
+    // Debug logging with detailed information
+    this.logActivity(`Debug: Retrieved ${messages.length} messages from shared storage file`, { 
+      requestedLimit: limit, 
+      since, 
+      addressFilter,
+      storageFile: 'absolute path will be shown by shared-storage.js'
+    });
+    
+    if (messages.length > 0) {
+      this.logActivity(`Debug: Sample message from storage:`, messages[messages.length - 1]);
+    } else {
+      this.logActivity(`Debug: No messages in shared storage - checking if file exists`);
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const { fileURLToPath } = await import('url');
+        
+        // Use same path calculation as shared-storage.js
+        const currentDir = path.dirname(fileURLToPath(import.meta.url));
+        const expectedFile = path.join(currentDir, 'logs', 'osc-messages.json');
+        
+        const fileExists = fs.existsSync(expectedFile);
+        this.logActivity(`Debug: Storage file exists: ${fileExists}`, { expectedFile });
+        if (fileExists) {
+          const fileContent = fs.readFileSync(expectedFile, 'utf8');
+          this.logActivity(`Debug: File content length: ${fileContent.length} characters`);
+          const data = JSON.parse(fileContent);
+          this.logActivity(`Debug: File contains ${data.length} messages`);
+          
+          // CRITICAL FIX: If file has messages but getOSCMessages returned empty, use file data directly
+          if (data.length > 0 && messages.length === 0) {
+            this.logActivity('Debug: FALLBACK - Using direct file data since getOSCMessages() failed');
+            messages = data;
+          }
+          
+          // CRITICAL FIX: If file has messages but getOSCMessages returned empty, use file data directly
+          if (data.length > 0 && messages.length === 0) {
+            this.logActivity(`Debug: FALLBACK - Using direct file data since getOSCMessages() failed`);
+            messages = data;
+          }
+        }
+      } catch (error) {
+        this.logActivity(`Debug: Error checking file:`, { error: error.message });
+      }
+    }
     
     // Filter by address if specified
     if (addressFilter) {
-      messages = messages.filter(msg => msg.address.includes(addressFilter));
+      messages = messages.filter(msg => msg.address && msg.address.includes(addressFilter));
+      this.logActivity(`Debug: After address filter: ${messages.length} messages`);
     }
     
     // Filter by time if specified
     if (since) {
       const sinceTime = new Date(since);
       messages = messages.filter(msg => new Date(msg.timestamp) > sinceTime);
+      this.logActivity(`Debug: After time filter: ${messages.length} messages`);
     }
     
     // Limit results
     messages = messages.slice(-limit);
+    this.logActivity(`Debug: Final message count: ${messages.length}`);
     
     if (messages.length === 0) {
+      this.logActivity('Debug: No messages found, returning default response');
       return "📭 **No OSC Messages Received**\n\n" +
              "No OSC messages have been received from external applications yet.\n\n" +
              "💡 **To receive OSC messages:**\n" +
              "1. Configure your creative application (MaxMSP, etc.) to send OSC to port 7501\n" +
              "2. Use address patterns like `/frommax/data` or `/feedback/control`\n" +
              "3. Send some test messages and run this tool again\n\n" +
-             "🔧 **Example MaxMSP setup:** `udpsend 127.0.0.1 7501`";
+             "🔧 **Example MaxMSP setup:** `udpsend 127.0.0.1 7501`\n\n" +
+             "🔍 **Debug Info:** Checked shared storage file but found no messages.";
     }
     
+    // Build response with actual messages
     let response = `📨 **Received OSC Messages** (${messages.length} recent)\n\n`;
     
     messages.forEach((msg, index) => {
       const time = new Date(msg.timestamp).toLocaleTimeString();
       response += `**${index + 1}. ${msg.address}**\n`;
       response += `   Time: ${time}\n`;
-      response += `   Source: ${msg.source}\n`;
-      if (msg.args.length > 0) {
+      response += `   Source: ${msg.source}:${msg.port}\n`;
+      if (msg.args && msg.args.length > 0) {
         response += `   Arguments: [${msg.args.join(', ')}]\n`;
       }
       response += '\n';
@@ -356,11 +408,16 @@ class PureMCPServer {
     response += `💡 **These messages were sent from your creative applications to MCP2OSC.**\n`;
     response += `🔄 **You can now use this data to respond with new OSC messages or process the information.**`;
     
+    this.logActivity(`Debug: Returning response with ${messages.length} messages`);
+    
     return response;
   }
 
   async handleToolCall(id, params, startTime) {
     const { name, arguments: args } = params;
+
+    // Log every tool call
+    this.logActivity(`MCP tool call received: ${name}`, { id, args });
 
     try {
       let result;
@@ -371,19 +428,26 @@ class PureMCPServer {
         userQuery = `Generate OSC patterns for: ${args.intent}`;
       } else if (args.address) {
         userQuery = `Send OSC message to ${args.address} with args: ${JSON.stringify(args.args || [])}`;
+      } else if (name === 'get_received_osc_messages') {
+        userQuery = `Get received OSC messages`;
       }
       
       switch (name) {
         case 'send_osc_message':
+          this.logActivity('Executing send_osc_message tool');
           result = await this.sendOSCMessage(args);
           break;
         case 'generate_osc_patterns':
+          this.logActivity('Executing generate_osc_patterns tool');
           result = await this.generateOSCPatterns(args);
           break;
         case 'get_received_osc_messages':
+          this.logActivity('Executing get_received_osc_messages tool - THIS IS THE CRITICAL ONE');
           result = await this.getReceivedOSCMessages(args);
+          this.logActivity('get_received_osc_messages tool completed', { resultLength: result.length });
           break;
         default:
+          this.logActivity(`Unknown tool: ${name}`);
           throw new Error(`Unknown tool: ${name}`);
       }
 
@@ -413,36 +477,23 @@ class PureMCPServer {
   }
 
   handleIncomingOSC(buffer, rinfo) {
+    // DEPRECATED: OSC receiving is now handled by dashboard server
+    // This method is kept for compatibility but should not be called
+    console.warn('WARNING: MCP server received OSC directly - this should be handled by dashboard server');
+    
     try {
       const message = this.parseOSCMessage(buffer);
       if (message) {
-        // Store received message for Claude to access
-        const oscMessage = {
-          address: message.address,
-          args: message.args,
-          timestamp: new Date().toISOString(),
-          source: `${rinfo.address}:${rinfo.port}`
-        };
-        
-        receivedOSCMessages.push(oscMessage);
-        
-        // Keep only last 100 received messages
-        if (receivedOSCMessages.length > 100) {
-          receivedOSCMessages.shift();
-        }
+        // Store in shared storage as backup
+        addOSCMessage(message.address, message.args, rinfo.address, rinfo.port);
         
         // Log the received message
-        this.logActivity(`OSC received: ${message.address} [${message.args.join(', ')}] from ${rinfo.address}:${rinfo.port}`, {
+        this.logActivity(`OSC received (backup handler): ${message.address} [${message.args.join(', ')}] from ${rinfo.address}:${rinfo.port}`, {
           address: message.address,
           args: message.args,
           source: rinfo.address,
           port: rinfo.port
         });
-        
-        // Also log to database if available
-        if (database) {
-          this.logOSCMessage('inbound', message.address, message.args, rinfo.address, rinfo.port);
-        }
       }
     } catch (error) {
       this.logActivity('Error parsing incoming OSC message', { error: error.message });

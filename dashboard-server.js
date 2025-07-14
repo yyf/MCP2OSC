@@ -12,6 +12,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createSocket } from 'dgram';
 import { spawn } from 'child_process';
+import { addOSCMessage, getOSCMessages } from './shared-storage.js';
 
 // Dynamic import for WebSocket to handle optional dependency
 let WebSocketServer;
@@ -44,9 +45,15 @@ const STATE = {
     errors: 0,
     uptime: Date.now()
   },
+  oscMessages: [],
   lastOSCReceivedTime: null,
   database: null
 };
+
+// Add oscMessages initialization if missing
+if (!STATE.oscMessages) {
+  STATE.oscMessages = [];
+}
 
 class DashboardServer {
   constructor() {
@@ -61,9 +68,8 @@ class DashboardServer {
     }
 
     this.startMCPServer();
-    this.loadLogs();
-    this.setupLogWatcher();
-    this.setupDataRefresh();
+    this.loadLogs();        this.setupLogWatcher();
+        this.setupOSCReceiver();
   }
 
   startMCPServer() {
@@ -333,7 +339,7 @@ class DashboardServer {
       case 'get_osc_messages':
         this.sendToClient(ws, {
           type: 'osc_messages', 
-          data: STATE.oscMessages.slice(-(data.count || 50))
+          data: (STATE.oscMessages || []).slice(-(data.count || 50))
         });
         break;
       default:
@@ -379,6 +385,32 @@ class DashboardServer {
       }
     } catch (error) {
       console.error('Failed to load logs:', error.message);
+    }
+  }
+
+  async logActivity(message, data = null) {
+    try {
+      const timestamp = new Date().toISOString();
+      const logLine = `${timestamp} [DASHBOARD] ${message}${data ? ` ${JSON.stringify(data)}` : ''}\n`;
+      await appendFile(CONFIG.LOG_FILE, logLine);
+      
+      // Also add to in-memory logs for immediate dashboard display
+      const logEntry = {
+        timestamp,
+        level: 'INFO',
+        message,
+        data
+      };
+      
+      STATE.logs.push(logEntry);
+      if (STATE.logs.length > 1000) {
+        STATE.logs.shift();
+      }
+      
+      // Broadcast to connected clients
+      this.broadcast('log', logEntry);
+    } catch (error) {
+      console.warn('Failed to log activity:', error.message);
     }
   }
 
@@ -501,7 +533,7 @@ class DashboardServer {
 
       case '/osc-messages':
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(STATE.oscMessages.slice(-100)));
+        res.end(JSON.stringify((STATE.oscMessages || []).slice(-100)));
         break;
 
       case '/patterns':
@@ -776,6 +808,8 @@ class DashboardServer {
                         level: 'INFO',
                         message: \`OSC received: \${message.data.address} [\${message.data.args.join(', ')}] from \${message.data.host}:\${message.data.port}\`
                     });
+                    // When OSC message is received, also store it
+                    storeOscMessage(message.data.address, message.data.args, message.data.host, message.data.port);
                     break;
                 default:
                     console.log('Unknown message type:', message.type, message.data);
@@ -935,6 +969,167 @@ class DashboardServer {
       console.log(`📋 Logs: ${CONFIG.LOG_FILE}`);
     });
   }
+
+  setupOSCReceiver() {
+    // Setup OSC receiver to store messages for the dashboard
+    try {
+      const oscReceiveSocket = createSocket('udp4');
+      
+      oscReceiveSocket.on('message', (buffer, rinfo) => {
+        try {
+          const message = this.parseOSCMessage(buffer);
+          if (message) {
+            // Store the OSC message in shared storage for MCP server access
+            const storedMessage = addOSCMessage(message.address, message.args, rinfo.address, rinfo.port);
+            console.log(`[SHARED STORAGE] Stored message:`, storedMessage);
+            console.log(`[SHARED STORAGE] File path: ./logs/osc-messages.json`);
+            
+            // Also store in local STATE for dashboard display
+            storeOscMessage(message.address, message.args, rinfo.address, rinfo.port);
+            
+            // Log to file (consistent with MCP server logging)
+            this.logActivity(`OSC received: ${message.address} [${message.args.join(', ')}] from ${rinfo.address}:${rinfo.port}`, {
+              address: message.address,
+              args: message.args,
+              source: rinfo.address,
+              port: rinfo.port
+            });
+            
+            STATE.stats.oscReceived++;
+            
+            // Broadcast to connected clients
+            this.broadcast('osc_received', {
+              address: message.address,
+              args: message.args,
+              host: rinfo.address,
+              port: rinfo.port,
+              timestamp: new Date().toISOString()
+            });
+          }
+        } catch (error) {
+          console.warn('Error parsing OSC message:', error.message);
+        }
+      });
+      
+      oscReceiveSocket.on('error', (error) => {
+        console.warn('OSC receive socket error:', error.message);
+      });
+      
+      // Bind to receive OSC messages
+      oscReceiveSocket.bind(CONFIG.OSC_RECEIVE_PORT, CONFIG.OSC_HOST, () => {
+        console.log(`📥 OSC receiver listening on ${CONFIG.OSC_HOST}:${CONFIG.OSC_RECEIVE_PORT}`);
+      });
+      
+      this.oscReceiveSocket = oscReceiveSocket;
+      
+    } catch (error) {
+      console.warn('Failed to setup OSC receiver:', error.message);
+    }
+  }
+
+  parseOSCMessage(buffer) {
+    try {
+      // Simple OSC message parser
+      let offset = 0;
+      
+      // Read address (null-terminated string)
+      let address = '';
+      while (offset < buffer.length && buffer[offset] !== 0) {
+        address += String.fromCharCode(buffer[offset]);
+        offset++;
+      }
+      
+      // Skip null terminator and padding
+      offset++;
+      while (offset % 4 !== 0 && offset < buffer.length) offset++;
+      
+      if (offset >= buffer.length) {
+        return { address, args: [] };
+      }
+      
+      // Read type tag string
+      let typeTag = '';
+      if (buffer[offset] === 44) { // ',' character
+        offset++;
+        while (offset < buffer.length && buffer[offset] !== 0) {
+          typeTag += String.fromCharCode(buffer[offset]);
+          offset++;
+        }
+      }
+      
+      // Skip null terminator and padding
+      offset++;
+      while (offset % 4 !== 0 && offset < buffer.length) offset++;
+      
+      // Parse arguments based on type tags
+      const args = [];
+      for (let i = 0; i < typeTag.length; i++) {
+        const type = typeTag[i];
+        
+        switch (type) {
+          case 'i': // 32-bit integer
+            if (offset + 4 <= buffer.length) {
+              args.push(buffer.readInt32BE(offset));
+              offset += 4;
+            }
+            break;
+          case 'f': // 32-bit float
+            if (offset + 4 <= buffer.length) {
+              args.push(buffer.readFloatBE(offset));
+              offset += 4;
+            }
+            break;
+          case 's': // string
+            let str = '';
+            while (offset < buffer.length && buffer[offset] !== 0) {
+              str += String.fromCharCode(buffer[offset]);
+              offset++;
+            }
+            args.push(str);
+            offset++;
+            while (offset % 4 !== 0 && offset < buffer.length) offset++;
+            break;
+          case 'T': // true
+            args.push(true);
+            break;
+          case 'F': // false
+            args.push(false);
+            break;
+          case 'N': // null
+            args.push(null);
+            break;
+        }
+      }
+      
+      return { address, args };
+    } catch (error) {
+      throw new Error(`OSC parsing failed: ${error.message}`);
+    }
+  }
+}
+
+// Function to store OSC messages when received
+function storeOscMessage(address, args, source, port) {
+  if (!STATE.oscMessages) {
+    STATE.oscMessages = [];
+  }
+  
+  const message = {
+    address,
+    args,
+    source,
+    port,
+    timestamp: new Date().toISOString()
+  };
+  
+  STATE.oscMessages.push(message);
+  
+  // Keep only last 1000 messages to prevent memory issues
+  if (STATE.oscMessages.length > 1000) {
+    STATE.oscMessages = STATE.oscMessages.slice(-1000);
+  }
+  
+  console.log(`OSC message stored: ${address} ${JSON.stringify(args)} from ${source}:${port}`);
 }
 
 // Start the dashboard server

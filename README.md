@@ -26,16 +26,11 @@ A bridge application that translates Model Context Protocol (MCP) message to Ope
      "mcpServers": {
        "mcp2osc": {
          "command": "/opt/homebrew/bin/node",
-         "args": ["/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/mcp-server-clean-working.js"]
+         "args": ["/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/mcp-server-clean.js"]
        }
      }
    }
    ```
-   
-   **Important:** 
-   - Replace `/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/` with your actual project path
-   - Use `mcp-server-clean-working.js` for Claude Desktop (provides pure JSON output)
-   - Run `npm run configure` to automatically generate the correct configuration
 
 5. **Open the dashboard**
    Visit `http://localhost:3001` to monitor and configure the system
