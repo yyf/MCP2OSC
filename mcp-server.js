@@ -12,6 +12,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import MCP2OSCDatabase from './database.js';
 import { addOSCMessage, getOSCMessages } from './shared-storage.js';
+import { commandQueue } from './command-queue.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -314,6 +315,53 @@ class PureMCPServer {
                 }
               }
             }
+          },
+          {
+            name: 'get_pending_commands',
+            description: 'Get pending OSC commands from MaxMSP that need Claude responses',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                limit: {
+                  type: 'number',
+                  description: 'Maximum number of pending commands to return (default: 10)',
+                  default: 10
+                },
+                priority: {
+                  type: 'string',
+                  description: 'Filter by priority level: high, medium, low, or all (default: all)',
+                  enum: ['high', 'medium', 'low', 'all'],
+                  default: 'all'
+                }
+              }
+            }
+          },
+          {
+            name: 'process_command_queue',
+            description: 'Process pending commands and send OSC responses back to MaxMSP',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                commandId: {
+                  type: 'string',
+                  description: 'Specific command ID to process (optional, processes all if not specified)'
+                },
+                responses: {
+                  type: 'array',
+                  description: 'Array of responses for multiple commands',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      commandId: { type: 'string' },
+                      address: { type: 'string' },
+                      args: { type: 'array' },
+                      intent: { type: 'string' }
+                    },
+                    required: ['commandId', 'address']
+                  }
+                }
+              }
+            }
           }
         ]
       }
@@ -491,6 +539,14 @@ class PureMCPServer {
           result = await this.getReceivedOSCMessages(args);
           this.logActivity('get_received_osc_messages tool completed', { resultLength: result.length });
           break;
+        case 'get_pending_commands':
+          this.logActivity('Executing get_pending_commands tool');
+          result = await this.getPendingCommands(args);
+          break;
+        case 'process_command_queue':
+          this.logActivity('Executing process_command_queue tool');
+          result = await this.processCommandQueue(args);
+          break;
         default:
           this.logActivity(`Unknown tool: ${name}`);
           throw new Error(`Unknown tool: ${name}`);
@@ -521,28 +577,171 @@ class PureMCPServer {
     }
   }
 
-  handleIncomingOSC(buffer, rinfo) {
-    // DEPRECATED: OSC receiving is now handled by dashboard server
-    // This method is kept for compatibility but should not be called
-    console.warn('WARNING: MCP server received OSC directly - this should be handled by dashboard server');
+  async getPendingCommands(args) {
+    const { limit = 10, priority = 'all' } = args;
     
-    try {
-      const message = this.parseOSCMessage(buffer);
-      if (message) {
-        // Store in shared storage as backup
-        addOSCMessage(message.address, message.args, rinfo.address, rinfo.port);
-        
-        // Log the received message
-        this.logActivity(`OSC received (backup handler): ${message.address} [${message.args.join(', ')}] from ${rinfo.address}:${rinfo.port}`, {
-          address: message.address,
-          args: message.args,
-          source: rinfo.address,
-          port: rinfo.port
-        });
-      }
-    } catch (error) {
-      this.logActivity('Error parsing incoming OSC message', { error: error.message });
+    const pendingCommands = commandQueue.getPendingCommands(limit);
+    const stats = commandQueue.getQueueStats();
+    
+    this.logActivity('Retrieved pending commands', { 
+      count: pendingCommands.length, 
+      limit, 
+      priority, 
+      stats 
+    });
+    
+    if (pendingCommands.length === 0) {
+      return "📭 **No Pending Commands**\n\n" +
+             "No OSC commands are waiting for Claude responses.\n\n" +
+             "💡 **To add commands:**\n" +
+             "1. Send OSC messages from MaxMSP to port 7501\n" +
+             "2. Use addresses like `/claude/request` or `/query/something`\n" +
+             "3. Commands will automatically queue for processing\n\n" +
+             `📊 **Queue Stats:** ${stats.total} total, ${stats.processed} processed`;
     }
+    
+    let response = `🎯 **Pending Commands** (${pendingCommands.length} waiting)\n\n`;
+    
+    pendingCommands.forEach((cmd, index) => {
+      const time = new Date(cmd.timestamp).toLocaleTimeString();
+      const priorityIcon = cmd.priority >= 8 ? '🔴' : cmd.priority >= 6 ? '🟡' : '🟢';
+      
+      response += `${priorityIcon} **${index + 1}. ${cmd.address}** (ID: ${cmd.id})\n`;
+      response += `   Time: ${time}\n`;
+      response += `   From: ${cmd.source}:${cmd.port}\n`;
+      response += `   Priority: ${cmd.priority}/10\n`;
+      if (cmd.args && cmd.args.length > 0) {
+        response += `   Arguments: [${cmd.args.join(', ')}]\n`;
+      }
+      if (cmd.intent) {
+        response += `   Intent: ${cmd.intent}\n`;
+      }
+      response += `   Suggested prompt: "${cmd.userPrompt}"\n\n`;
+    });
+    
+    response += `📊 **Queue Statistics:**\n`;
+    response += `• Total commands: ${stats.total}\n`;
+    response += `• Pending: ${stats.pending}\n`;
+    response += `• Processed: ${stats.processed}\n`;
+    response += `• High priority: ${stats.highPriority}\n\n`;
+    
+    response += `🔄 **Next Steps:**\n`;
+    response += `Use "process_command_queue" to respond to these commands with OSC messages back to MaxMSP.`;
+    
+    return response;
+  }
+
+  async processCommandQueue(args) {
+    const { commandId = null, responses = [] } = args;
+    
+    let processedCount = 0;
+    let results = [];
+    
+    if (commandId) {
+      // Process single command
+      const command = commandQueue.getPendingCommands(100).find(cmd => cmd.id === commandId);
+      if (!command) {
+        throw new Error(`Command not found: ${commandId}`);
+      }
+      
+      // For single command, generate default response
+      const response = {
+        address: `/claude/response/${command.address.replace('/', '')}`,
+        args: ['processed', Date.now()],
+        intent: 'Acknowledged command'
+      };
+      
+      const result = await this.sendOSCMessage({
+        address: response.address,
+        args: response.args
+      });
+      
+      commandQueue.markAsProcessed(commandId, response);
+      processedCount = 1;
+      results.push({ commandId, response, result });
+      
+    } else if (responses.length > 0) {
+      // Process multiple commands with custom responses
+      for (const resp of responses) {
+        try {
+          const result = await this.sendOSCMessage({
+            address: resp.address,
+            args: resp.args || []
+          });
+          
+          commandQueue.markAsProcessed(resp.commandId, resp);
+          processedCount++;
+          results.push({ commandId: resp.commandId, response: resp, result });
+          
+        } catch (error) {
+          results.push({ 
+            commandId: resp.commandId, 
+            error: error.message 
+          });
+        }
+      }
+    } else {
+      // Process all pending commands with default responses
+      const pendingCommands = commandQueue.getPendingCommands(50);
+      
+      for (const command of pendingCommands) {
+        try {
+          const response = {
+            address: `/claude/ack/${command.address.split('/').pop()}`,
+            args: ['received', command.id.slice(-8)],
+            intent: 'Auto-acknowledgment'
+          };
+          
+          const result = await this.sendOSCMessage({
+            address: response.address,
+            args: response.args
+          });
+          
+          commandQueue.markAsProcessed(command.id, response);
+          processedCount++;
+          results.push({ commandId: command.id, response, result });
+          
+        } catch (error) {
+          results.push({ 
+            commandId: command.id, 
+            error: error.message 
+          });
+        }
+      }
+    }
+    
+    this.logActivity('Processed command queue', { 
+      processedCount, 
+      totalResults: results.length, 
+      mode: commandId ? 'single' : responses.length > 0 ? 'custom' : 'auto' 
+    });
+    
+    let response = `✅ **Command Queue Processed** (${processedCount} commands)\n\n`;
+    
+    results.forEach((result, index) => {
+      if (result.error) {
+        response += `❌ **${index + 1}. Command ${result.commandId}**\n`;
+        response += `   Error: ${result.error}\n\n`;
+      } else {
+        response += `✅ **${index + 1}. Command ${result.commandId}**\n`;
+        response += `   Response sent: ${result.response.address}\n`;
+        response += `   Arguments: [${result.response.args.join(', ')}]\n`;
+        if (result.response.intent) {
+          response += `   Intent: ${result.response.intent}\n`;
+        }
+        response += '\n';
+      }
+    });
+    
+    const stats = commandQueue.getQueueStats();
+    response += `📊 **Updated Queue Stats:**\n`;
+    response += `• Pending: ${stats.pending}\n`;
+    response += `• Total processed: ${stats.processed}\n\n`;
+    
+    response += `🎵 **OSC responses have been sent back to MaxMSP.**\n`;
+    response += `🔄 MaxMSP should receive the responses on their configured OSC input.`;
+    
+    return response;
   }
 
   parseOSCMessage(buffer) {

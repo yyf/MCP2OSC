@@ -12,6 +12,15 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORAGE_FILE = path.join(__dirname, 'logs', 'osc-messages.json');
 
+// Import command queue for auto-queuing
+let commandQueue = null;
+try {
+    const { commandQueue: cq } = await import('./command-queue.js');
+    commandQueue = cq;
+} catch (error) {
+    console.warn('[SHARED STORAGE] Command queue not available:', error.message);
+}
+
 // Ensure logs directory exists
 function ensureLogsDir() {
     const logsDir = path.dirname(STORAGE_FILE);
@@ -94,10 +103,49 @@ export function addOSCMessage(address, args, source, port, direction = 'inbound'
     // Save back to file
     saveMessages(messages);
     
+    // Auto-queue certain inbound messages for Claude processing
+    if (direction === 'inbound' && commandQueue && shouldAutoQueue(address)) {
+        try {
+            const intent = extractIntent(address, args);
+            commandQueue.addCommand(address, args, source, port, intent);
+            console.log(`[SHARED STORAGE] Auto-queued for Claude: ${address}`);
+        } catch (error) {
+            console.warn('[SHARED STORAGE] Failed to auto-queue command:', error.message);
+        }
+    }
+    
     console.log(`[SHARED STORAGE FILE] OSC stored: ${address} ${direction} ${source}:${port} (total: ${messages.length})`);
     console.log(`[SHARED STORAGE FILE] Absolute path: ${STORAGE_FILE}`);
     
     return message;
+}
+
+// Helper function to determine if message should be auto-queued
+function shouldAutoQueue(address) {
+    const autoQueuePatterns = [
+        '/claude/',
+        '/query/',
+        '/request/',
+        '/ask/',
+        '/command/',
+        '/ai/',
+        '/process/'
+    ];
+    
+    return autoQueuePatterns.some(pattern => address.toLowerCase().includes(pattern));
+}
+
+// Helper function to extract intent from OSC message
+function extractIntent(address, args) {
+    // Extract meaningful intent from address and args
+    const addressParts = address.split('/').filter(part => part.length > 0);
+    const lastPart = addressParts[addressParts.length - 1];
+    
+    if (args && args.length > 0) {
+        return `${lastPart} with ${args.length} argument(s): ${args.slice(0, 3).join(', ')}${args.length > 3 ? '...' : ''}`;
+    }
+    
+    return lastPart || 'process command';
 }
 
 export function getOSCMessages(limit = 100) {
