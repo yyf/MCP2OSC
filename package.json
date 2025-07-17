@@ -11,6 +11,7 @@
     "mcp": "node service-manager.js",
     "mcp-only": "node mcp-server.js",
     "dashboard-only": "node enhanced-dashboard-server.js",
+    "test-pattern-management": "node test-pattern-management.js",
     "test-critical-fixes": "node test-critical-issues-fixes.js",
     "test-osc-parsing": "node test-osc-parsing-fix.js",
     "fix-osc-messages": "node fix-osc-messages-format.js",

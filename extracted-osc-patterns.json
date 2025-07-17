@@ -1,56 +1,86 @@
 {
   "patterns": [
     {
-      "address": "/audio/volume",
-      "application": "General",
+      "address": "/test/frequency",
+      "application": "TestApp",
       "category": "audio",
-      "description": "Master volume control",
+      "description": "Test frequency control pattern",
       "parameters": [
-        "float"
+        {
+          "name": "freq",
+          "type": "integer",
+          "range": {
+            "min": 20,
+            "max": 20000
+          },
+          "default": 440,
+          "unit": "Hz"
+        }
       ],
       "tags": [
-        "volume",
-        "master",
+        "frequency",
         "audio",
-        "control"
+        "synthesis"
       ],
       "enabled": true,
-      "createdAt": "2025-07-17T00:09:53.993Z"
+      "createdAt": "2025-07-17T23:00:11.418Z",
+      "updatedAt": "2025-07-17T23:00:11.418Z",
+      "version": 1
     },
     {
-      "address": "/audio/volume",
-      "application": "Audio System",
-      "category": "audio",
-      "description": "Controls the main audio volume level",
-      "createdAt": "2025-07-17T00:24:19.153Z"
-    },
-    {
-      "address": "/transport/playback",
-      "application": "Transport System",
-      "category": "control",
-      "description": "Controls playback transport (play/pause/stop)",
-      "createdAt": "2025-07-17T02:58:56.092Z"
-    },
-    {
-      "address": "/pan/center",
+      "address": "/maxmsp/synth/osc1/freq",
       "application": "MaxMSP",
       "category": "audio",
-      "description": "Panning control - center position",
-      "createdAt": "2025-07-17T15:27:29.089Z"
-    },
-    {
-      "address": "/transport/pause",
-      "application": "MaxMSP",
-      "category": "control",
-      "description": "Pause transport/playback in MaxMSP",
-      "createdAt": "2025-07-17T19:58:06.505Z"
+      "description": "Oscillator 1 frequency control for analog synthesis",
+      "parameters": [
+        {
+          "name": "frequency",
+          "type": "float",
+          "range": {
+            "min": 20,
+            "max": 20000
+          },
+          "default": 440,
+          "unit": "Hz"
+        },
+        {
+          "name": "fine_tune",
+          "type": "float",
+          "range": {
+            "min": -100,
+            "max": 100
+          },
+          "default": 0,
+          "unit": "cents"
+        }
+      ],
+      "tags": [
+        "oscillator",
+        "frequency",
+        "synthesis",
+        "analog"
+      ],
+      "enabled": true,
+      "createdAt": "2025-07-17T23:00:11.419Z",
+      "updatedAt": "2025-07-17T23:00:11.419Z",
+      "version": 1
     }
   ],
   "metadata": {
-    "extractedAt": "2025-07-16T22:39:51.317Z",
-    "totalPatterns": 1,
-    "applications": [],
-    "categories": [],
-    "lastUpdate": "2025-07-17T00:09:53.997Z"
+    "extractedAt": "2025-07-17T23:00:11.418Z",
+    "totalPatterns": 2,
+    "applications": [
+      "TestApp"
+    ],
+    "categories": [
+      "audio"
+    ],
+    "lastUpdate": "2025-07-17T23:02:56.054Z",
+    "version": "1.0.0",
+    "lastDeleted": {
+      "address": "/audio/volume",
+      "deletedAt": "2025-07-17T23:02:56.054Z",
+      "deletedCount": 1
+    }
   }
 }

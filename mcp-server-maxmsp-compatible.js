@@ -286,14 +286,79 @@ class MaxMSPCompatibleMCPServer {
           },
           {
             name: 'save_osc_pattern',
-            description: 'Save OSC patterns for MaxMSP and other creative applications',
+            description: 'Save OSC address patterns with metadata for creative applications like MaxMSP, TouchDesigner, or Processing',
             inputSchema: {
               type: 'object',
               properties: {
-                address: { type: 'string' },
-                application: { type: 'string' },
-                category: { type: 'string', enum: ['audio', 'video', 'control', 'effects', 'general'] },
-                description: { type: 'string' }
+                address: { 
+                  type: 'string', 
+                  description: 'OSC address pattern (must start with /)',
+                  pattern: '^/[a-zA-Z0-9_\\-/\\*\\?\\[\\]]*$'
+                },
+                application: { 
+                  type: 'string', 
+                  description: 'Target creative application (e.g., MaxMSP, TouchDesigner, Processing)',
+                  minLength: 1
+                },
+                category: { 
+                  type: 'string', 
+                  description: 'Pattern category for organization',
+                  enum: ['audio', 'video', 'control', 'effects', 'general']
+                },
+                description: { 
+                  type: 'string', 
+                  description: 'Purpose and usage description of the pattern',
+                  minLength: 5
+                },
+                parameters: {
+                  type: 'array',
+                  description: 'Parameter definitions for the OSC pattern',
+                  default: [],
+                  items: {
+                    type: 'object',
+                    properties: {
+                      name: { 
+                        type: 'string', 
+                        description: 'Parameter name' 
+                      },
+                      type: { 
+                        type: 'string', 
+                        description: 'Parameter data type',
+                        enum: ['integer', 'float', 'string', 'boolean', 'blob']
+                      },
+                      range: {
+                        type: 'object',
+                        description: 'Value range for numeric parameters',
+                        properties: {
+                          min: { type: 'number' },
+                          max: { type: 'number' }
+                        }
+                      },
+                      default: { 
+                        description: 'Default value for the parameter' 
+                      },
+                      unit: { 
+                        type: 'string', 
+                        description: 'Unit of measurement (Hz, dB, %, etc.)' 
+                      }
+                    },
+                    required: ['name', 'type']
+                  }
+                },
+                tags: {
+                  type: 'array',
+                  description: 'Keywords for pattern discovery and categorization',
+                  default: [],
+                  items: { 
+                    type: 'string',
+                    minLength: 1 
+                  }
+                },
+                enabled: {
+                  type: 'boolean',
+                  description: 'Whether this pattern is active/enabled',
+                  default: true
+                }
               },
               required: ['address', 'application', 'category', 'description']
             }
@@ -318,6 +383,21 @@ class MaxMSPCompatibleMCPServer {
               type: 'object',
               properties: {}
             }
+          },
+          {
+            name: 'delete_osc_pattern',
+            description: 'Remove a saved OSC address pattern from storage by specifying its exact address pattern',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                address: { 
+                  type: 'string', 
+                  description: 'OSC address pattern to delete (must start with /)',
+                  pattern: '^/.*'
+                }
+              },
+              required: ['address']
+            }
           }
         ]
       };
@@ -340,6 +420,8 @@ class MaxMSPCompatibleMCPServer {
             return await this.handleGetPatterns(args);
           case 'get_patterns_summary':
             return await this.handleGetSummary(args);
+          case 'delete_osc_pattern':
+            return await this.handleDeletePattern(args);
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -481,27 +563,97 @@ class MaxMSPCompatibleMCPServer {
     return Buffer.concat([buffer, Buffer.alloc(padding)]);
   }
 
-  // Simplified pattern management methods with atomic writes
+  // Comprehensive pattern management methods with atomic writes
   async handleSavePattern(args) {
-    const { address, application, category, description } = args;
+    const { 
+      address, 
+      application, 
+      category, 
+      description, 
+      parameters = [], 
+      tags = [], 
+      enabled = true 
+    } = args;
+    
+    // Validate required fields
+    if (!address || !address.startsWith('/')) {
+      throw new Error('OSC address must start with "/" and cannot be empty');
+    }
+    
+    if (!application || application.trim().length === 0) {
+      throw new Error('Application name is required');
+    }
+    
+    if (!['audio', 'video', 'control', 'effects', 'general'].includes(category)) {
+      throw new Error('Category must be one of: audio, video, control, effects, general');
+    }
+    
+    if (!description || description.trim().length < 5) {
+      throw new Error('Description must be at least 5 characters long');
+    }
+    
+    // Validate parameters schema
+    if (parameters && Array.isArray(parameters)) {
+      for (const param of parameters) {
+        if (!param.name || !param.type) {
+          throw new Error('Each parameter must have a name and type');
+        }
+        if (!['integer', 'float', 'string', 'boolean', 'blob'].includes(param.type)) {
+          throw new Error('Parameter type must be one of: integer, float, string, boolean, blob');
+        }
+      }
+    }
+    
+    // Validate tags
+    if (tags && Array.isArray(tags)) {
+      for (const tag of tags) {
+        if (typeof tag !== 'string' || tag.trim().length === 0) {
+          throw new Error('All tags must be non-empty strings');
+        }
+      }
+    }
     
     const data = await this.loadPatterns();
-    data.patterns.push({
+    
+    // Check for existing pattern with same address
+    const existingIndex = data.patterns.findIndex(p => p.address === address);
+    
+    const patternObject = {
       address,
-      application,
+      application: application.trim(),
       category,
-      description,
-      createdAt: new Date().toISOString()
-    });
-    
-    await this.savePatterns(data);
-    
-    return {
-      content: [{
-        type: 'text',
-        text: `✅ Saved OSC pattern: ${address} for ${application}`
-      }]
+      description: description.trim(),
+      parameters: parameters || [],
+      tags: tags || [],
+      enabled: enabled !== false, // Default to true
+      createdAt: existingIndex >= 0 ? data.patterns[existingIndex].createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: existingIndex >= 0 ? (data.patterns[existingIndex].version || 1) + 1 : 1
     };
+    
+    if (existingIndex >= 0) {
+      // Update existing pattern
+      data.patterns[existingIndex] = patternObject;
+      await this.savePatterns(data);
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ Updated OSC pattern: ${address}\n\nApplication: ${application}\nCategory: ${category}\nDescription: ${description}\nParameters: ${parameters.length}\nTags: ${tags.length}\nEnabled: ${enabled}\nVersion: ${patternObject.version}`
+        }]
+      };
+    } else {
+      // Add new pattern
+      data.patterns.push(patternObject);
+      await this.savePatterns(data);
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ Saved new OSC pattern: ${address}\n\nApplication: ${application}\nCategory: ${category}\nDescription: ${description}\nParameters: ${parameters.length}\nTags: ${tags.length}\nEnabled: ${enabled}\nTotal patterns: ${data.patterns.length}`
+        }]
+      };
+    }
   }
 
   async handleGetPatterns(args) {
@@ -555,6 +707,56 @@ class MaxMSPCompatibleMCPServer {
       content: [{
         type: 'text',
         text: `📊 OSC Pattern Database Summary\n\nTotal: ${summary.totalPatterns}\n\nApplications:\n${Object.entries(summary.applications).map(([app, count]) => `• ${app}: ${count}`).join('\n')}\n\nCategories:\n${Object.entries(summary.categories).map(([cat, count]) => `• ${cat}: ${count}`).join('\n')}`
+      }]
+    };
+  }
+
+  async handleDeletePattern(args) {
+    const { address } = args;
+    
+    // Validate address format
+    if (!address || !address.startsWith('/')) {
+      throw new Error('OSC address must start with "/" and cannot be empty');
+    }
+    
+    const data = await this.loadPatterns();
+    const initialCount = data.patterns.length;
+    
+    // Find and remove patterns with matching address
+    const filteredPatterns = data.patterns.filter(pattern => pattern.address !== address);
+    const deletedCount = initialCount - filteredPatterns.length;
+    
+    if (deletedCount === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ Pattern not found: ${address}\n\nNo OSC pattern with address "${address}" exists in storage.`
+        }]
+      };
+    }
+    
+    // Update patterns data
+    data.patterns = filteredPatterns;
+    
+    // Update metadata
+    data.metadata = {
+      ...data.metadata,
+      totalPatterns: filteredPatterns.length,
+      lastUpdate: new Date().toISOString(),
+      lastDeleted: {
+        address,
+        deletedAt: new Date().toISOString(),
+        deletedCount
+      }
+    };
+    
+    // Save updated data
+    await this.savePatterns(data);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `✅ Successfully deleted OSC pattern: ${address}\n\n${deletedCount} pattern${deletedCount > 1 ? 's' : ''} removed from storage.\nRemaining patterns: ${filteredPatterns.length}`
       }]
     };
   }
