@@ -1,0 +1,56 @@
+{
+  "patterns": [
+    {
+      "address": "/audio/volume",
+      "application": "General",
+      "category": "audio",
+      "description": "Master volume control",
+      "parameters": [
+        "float"
+      ],
+      "tags": [
+        "volume",
+        "master",
+        "audio",
+        "control"
+      ],
+      "enabled": true,
+      "createdAt": "2025-07-17T00:09:53.993Z"
+    },
+    {
+      "address": "/audio/volume",
+      "application": "Audio System",
+      "category": "audio",
+      "description": "Controls the main audio volume level",
+      "createdAt": "2025-07-17T00:24:19.153Z"
+    },
+    {
+      "address": "/transport/playback",
+      "application": "Transport System",
+      "category": "control",
+      "description": "Controls playback transport (play/pause/stop)",
+      "createdAt": "2025-07-17T02:58:56.092Z"
+    },
+    {
+      "address": "/pan/center",
+      "application": "MaxMSP",
+      "category": "audio",
+      "description": "Panning control - center position",
+      "createdAt": "2025-07-17T15:27:29.089Z"
+    },
+    {
+      "address": "/transport/pause",
+      "application": "MaxMSP",
+      "category": "control",
+      "description": "Pause transport/playback in MaxMSP",
+      "createdAt": "2025-07-17T19:58:06.505Z"
+    }
+  ],
+  "metadata": {
+    "extractedAt": "2025-07-16T22:39:51.317Z",
+    "totalPatterns": 1,
+    "applications": [],
+    "categories": [],
+    "lastUpdate": "2025-07-17T00:09:53.997Z"
+  }
+}

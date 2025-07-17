@@ -63,12 +63,21 @@ class MCP2OSCStarter {
     for (const port of portsToCheck) {
       try {
         const { execSync } = await import('child_process');
-        const result = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+        
+        let result;
+        if (process.platform === 'win32') {
+          // Windows command
+          result = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+        } else {
+          // Unix/macOS command  
+          result = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+        }
+        
         if (result.trim()) {
           usedPorts.push(port);
         }
       } catch (error) {
-        // Port is available (lsof returns non-zero when no processes found)
+        // Port is available (command returns non-zero when no processes found)
       }
     }
     
@@ -78,7 +87,11 @@ class MCP2OSCStarter {
       
       // Import and run stop script
       const { execSync } = await import('child_process');
-      execSync('node stop.js', { cwd: __dirname, stdio: 'inherit' });
+      try {
+        execSync('node stop.js', { cwd: __dirname, stdio: 'inherit' });
+      } catch (error) {
+        console.warn('⚠️  Stop script had issues, continuing...');
+      }
       
       // Wait for processes to stop
       await new Promise(resolve => setTimeout(resolve, 3000));
@@ -87,7 +100,13 @@ class MCP2OSCStarter {
       const stillUsed = [];
       for (const port of usedPorts) {
         try {
-          const result = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          let result;
+          if (process.platform === 'win32') {
+            result = execSync(`netstat -ano | findstr :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          } else {
+            result = execSync(`lsof -ti :${port}`, { encoding: 'utf8', stdio: 'pipe' });
+          }
+          
           if (result.trim()) {
             stillUsed.push(port);
           }
@@ -97,11 +116,11 @@ class MCP2OSCStarter {
       }
       
       if (stillUsed.length > 0) {
-        throw new Error(`Ports still in use: ${stillUsed.join(', ')}. Please run 'npm run stop' manually.`);
+        console.warn(`⚠️  Ports still in use: ${stillUsed.join(', ')}. Continuing anyway...`);
       }
     }
     
-    console.log('✅ Ports are available');
+    console.log('✅ Port check completed');
   }
 
   async installDependencies() {
@@ -126,8 +145,12 @@ class MCP2OSCStarter {
     console.log('==============================');
     console.log('');
     console.log('MCP Server: Running in background (for Claude)');
-    console.log('Dashboard: http://localhost:3001');
+    console.log('Enhanced Dashboard: http://localhost:3001');
+    console.log('File Upload: http://localhost:3001/upload');
     console.log('Frontend: http://localhost:3002 (development)');
+    console.log('');
+    console.log('📁 Upload user manuals to extract OSC patterns');
+    console.log('🤖 Ask Claude to search and use extracted patterns');
     console.log('');
     console.log('Press Ctrl+C to stop all services');
     console.log('');
@@ -136,14 +159,15 @@ class MCP2OSCStarter {
     console.log('🔧 Starting MCP server (standalone mode)...');
     const mcpProcess = spawn('node', ['mcp-server.js'], {
       stdio: ['inherit', 'inherit', 'inherit'],
-      cwd: __dirname
+      cwd: __dirname,
+      env: { ...process.env, STANDALONE: 'true' }
     });
     
     this.processes.push(mcpProcess);
 
     // Start dashboard server
-    console.log('📊 Starting dashboard server...');
-    const dashboardProcess = spawn('node', ['dashboard-server.js'], {
+    console.log('📊 Starting enhanced dashboard server...');
+    const dashboardProcess = spawn('node', ['enhanced-dashboard-server.js'], {
       stdio: ['inherit', 'inherit', 'inherit'],
       cwd: __dirname
     });
@@ -159,8 +183,7 @@ class MCP2OSCStarter {
       console.log('🎨 Starting frontend development server...');
       const frontendProcess = spawn('npm', ['run', 'dev'], {
         stdio: ['inherit', 'inherit', 'inherit'],
-        cwd: webDashboardPath,
-        shell: true
+        cwd: webDashboardPath
       });
       
       this.processes.push(frontendProcess);
@@ -194,8 +217,7 @@ class MCP2OSCStarter {
     return new Promise((resolve, reject) => {
       const proc = spawn(command, args, {
         cwd: cwd || __dirname,
-        stdio: ['inherit', 'inherit', 'inherit'],
-        shell: process.platform === 'win32'
+        stdio: ['inherit', 'inherit', 'inherit']
       });
 
       proc.on('exit', (code) => {

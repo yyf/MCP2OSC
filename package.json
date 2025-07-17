@@ -1,52 +1,56 @@
 {
   "name": "mcp2osc",
   "version": "1.0.0",
-  "description": "Bridge application that translates MCP messages to OSC messages in real-time",
+  "description": "Model Context Protocol to Open Sound Control Bridge - Enables Claude AI to manage OSC patterns and send OSC messages",
   "type": "module",
   "main": "mcp-server.js",
   "scripts": {
-    "setup": "node setup.js",
-    "configure": "node configure.js",
-    "start": "node dashboard-server.js",
+    "start": "node service-manager.js",
+    "dev": "node service-manager.js",
     "stop": "node stop.js",
-    "server": "node mcp-server.js",
-    "dashboard": "node dashboard-server.js",
-    "test-clean": "node test-clean-server.js",
-    "test-basic": "node test-basic-mcp.js",
-    "web": "cd web-dashboard && npm run dev",
-    "build": "cd web-dashboard && npm run build",
-    "test": "node tests/run-all-tests.js",
-    "test:integration": "node tests/mcp-integration.test.js",
-    "test:e2e": "node tests/e2e-pipeline.test.js",
-    "dev": "npm run server & npm run web",
-    "logs": "tail -f logs/mcp2osc.log",
-    "clean": "rm -rf logs/* web-dashboard/dist",
-    "start:prod": "NODE_ENV=production node mcp-server.js"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "mcp": "node service-manager.js",
+    "mcp-only": "node mcp-server.js",
+    "dashboard-only": "node enhanced-dashboard-server.js",
+    "test-critical-fixes": "node test-critical-issues-fixes.js",
+    "test-osc-parsing": "node test-osc-parsing-fix.js",
+    "fix-osc-messages": "node fix-osc-messages-format.js",
+    "mcp-maxmsp": "node mcp-server-maxmsp-compatible.js",
+    "test-maxmsp": "node test-maxmsp-integration.js",
+    "analyze-system": "node system-analysis-report.js",
+    "mcp-complete": "node mcp-server-complete.js",
+    "test": "node test.js",
+    "test-comprehensive": "node test-comprehensive.js",
+    "test-service-manager": "node test-service-manager.js",
+    "test-osc": "node test-osc.js",
+    "production-check": "node production-readiness.js",
+    "generate-logs": "node generate-test-logs.js",
+    "fix-logging": "node fix-logging.js",
+    "diagnose": "node mcp-diagnostic.js"
   },
   "keywords": [
     "mcp",
     "osc",
-    "opensoundcontrol",
-    "model-context-protocol",
     "claude",
-    "maxmsp",
-    "processing",
-    "creative-coding",
-    "ai",
-    "llm"
+    "model-context-protocol",
+    "open-sound-control",
+    "music",
+    "audio",
+    "ai"
   ],
   "author": "MCP2OSC Team",
   "license": "MIT",
   "dependencies": {
-    "ws": "^8.14.2",
-    "sqlite3": "^5.1.6",
-    "dotenv": "^16.3.1"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^4.18.2",
+    "dgram": "^1.0.0",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "repository": {
     "type": "git",
