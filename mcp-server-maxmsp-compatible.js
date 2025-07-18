@@ -28,7 +28,7 @@ process.title = 'mcp2osc-server';
 const CONFIG = {
   OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '7500'),
   OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '7501'),
-  OSC_HOST: process.env.DEFAULT_OSC_HOST || '127.0.0.1',
+  OSC_HOST: process.env.OSC_HOST || process.env.DEFAULT_OSC_HOST || '127.0.0.1',
   PATTERNS_FILE: path.join(__dirname, 'extracted-osc-patterns.json'),
   LOG_FILE: path.join(__dirname, 'logs', 'mcp2osc.log'),
   OSC_MESSAGES_FILE: path.join(__dirname, 'logs', 'osc-messages.json'),
@@ -59,6 +59,7 @@ class MaxMSPCompatibleMCPServer {
     
     this.setupToolHandlers();
     console.error('🚀 MaxMSP-Compatible MCP Server initialized');
+    console.error(`🔧 OSC Configuration: ${CONFIG.OSC_HOST}:${CONFIG.OSC_SEND_PORT} (send) / ${CONFIG.OSC_HOST}:${CONFIG.OSC_RECEIVE_PORT} (receive)`);
   }
 
   async setupOSCReceiver() {

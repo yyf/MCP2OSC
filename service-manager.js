@@ -18,19 +18,33 @@ class ServiceManager {
   constructor() {
     this.services = new Map();
     this.config = {
-      OSC_SEND_PORT: 7500,
-      OSC_RECEIVE_PORT: 7501,
-      DASHBOARD_PORT: 3001,
+      OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '7500'),
+      OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '7501'),
+      OSC_HOST: process.env.OSC_HOST || '127.0.0.1',
+      DASHBOARD_PORT: parseInt(process.env.DASHBOARD_PORT || '3001'),
       MCP_MODE: process.env.MCP_MODE || 'standalone',
       LOG_DIR: join(__dirname, 'logs'),
       PATTERNS_FILE: join(__dirname, 'extracted-osc-patterns.json')
     };
     this.isShuttingDown = false;
+    
+    // Log the configuration being used
+    console.log('🔧 Service Manager Configuration:');
+    console.log(`   OSC_HOST: ${this.config.OSC_HOST}`);
+    console.log(`   OSC_SEND_PORT: ${this.config.OSC_SEND_PORT}`);
+    console.log(`   OSC_RECEIVE_PORT: ${this.config.OSC_RECEIVE_PORT}`);
+    console.log(`   DASHBOARD_PORT: ${this.config.DASHBOARD_PORT}`);
+    console.log('');
   }
 
   async start() {
     console.log('🚀 MCP2OSC Service Manager Starting...');
     console.log('=====================================');
+    
+    // Show environment source
+    const envSource = process.env.OSC_SEND_PORT !== '7500' || process.env.OSC_RECEIVE_PORT !== '7501' ? 
+      'environment variables' : 'default values';
+    console.log(`📋 Using ${envSource} for OSC configuration`);
 
     try {
       await this.initializeEnvironment();
@@ -323,7 +337,8 @@ class ServiceManager {
         ...process.env, 
         STANDALONE: 'true',
         OSC_SEND_PORT: this.config.OSC_SEND_PORT.toString(),
-        OSC_RECEIVE_PORT: this.config.OSC_RECEIVE_PORT.toString()
+        OSC_RECEIVE_PORT: this.config.OSC_RECEIVE_PORT.toString(),
+        OSC_HOST: this.config.OSC_HOST
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });
@@ -367,7 +382,8 @@ class ServiceManager {
         ...process.env,
         WEB_PORT: this.config.DASHBOARD_PORT.toString(),
         OSC_SEND_PORT: this.config.OSC_SEND_PORT.toString(),
-        OSC_RECEIVE_PORT: (this.config.OSC_RECEIVE_PORT + 1).toString() // Avoid conflict
+        OSC_RECEIVE_PORT: (this.config.OSC_RECEIVE_PORT + 1).toString(), // Avoid conflict
+        OSC_HOST: this.config.OSC_HOST
       },
       stdio: ['ignore', 'pipe', 'pipe']
     });

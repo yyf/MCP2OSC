@@ -20,7 +20,7 @@ const CONFIG = {
     WEB_PORT: parseInt(process.env.WEB_PORT || '3001'),
     OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '7500'),
     OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '7502'), // Different port to avoid conflict
-    OSC_HOST: process.env.DEFAULT_OSC_HOST || '127.0.0.1',
+    OSC_HOST: process.env.OSC_HOST || process.env.DEFAULT_OSC_HOST || '127.0.0.1',
     LOG_FILE: path.join(__dirname, 'logs', 'mcp2osc.log')
 };
 

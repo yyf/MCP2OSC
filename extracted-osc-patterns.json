@@ -1,33 +1,6 @@
 {
   "patterns": [
     {
-      "address": "/test/frequency",
-      "application": "TestApp",
-      "category": "audio",
-      "description": "Test frequency control pattern",
-      "parameters": [
-        {
-          "name": "freq",
-          "type": "integer",
-          "range": {
-            "min": 20,
-            "max": 20000
-          },
-          "default": 440,
-          "unit": "Hz"
-        }
-      ],
-      "tags": [
-        "frequency",
-        "audio",
-        "synthesis"
-      ],
-      "enabled": true,
-      "createdAt": "2025-07-17T23:00:11.418Z",
-      "updatedAt": "2025-07-17T23:00:11.418Z",
-      "version": 1
-    },
-    {
       "address": "/maxmsp/synth/osc1/freq",
       "application": "MaxMSP",
       "category": "audio",
@@ -64,6 +37,36 @@
       "createdAt": "2025-07-17T23:00:11.419Z",
       "updatedAt": "2025-07-17T23:00:11.419Z",
       "version": 1
+    },
+    {
+      "address": "/transport/forward",
+      "application": "MaxMSP",
+      "category": "control",
+      "description": "Transport control for moving playback position forward in audio/video sequences",
+      "parameters": [
+        {
+          "name": "amount",
+          "type": "float",
+          "default": 1,
+          "range": {
+            "min": 0.1,
+            "max": 10
+          },
+          "unit": "seconds"
+        }
+      ],
+      "tags": [
+        "transport",
+        "playback",
+        "forward",
+        "control",
+        "audio",
+        "video"
+      ],
+      "enabled": true,
+      "createdAt": "2025-07-18T17:48:14.991Z",
+      "updatedAt": "2025-07-18T17:48:14.991Z",
+      "version": 1
     }
   ],
   "metadata": {
@@ -75,11 +78,11 @@
     "categories": [
       "audio"
     ],
-    "lastUpdate": "2025-07-17T23:02:56.054Z",
+    "lastUpdate": "2025-07-18T21:26:25.381Z",
     "version": "1.0.0",
     "lastDeleted": {
-      "address": "/audio/volume",
-      "deletedAt": "2025-07-17T23:02:56.054Z",
+      "address": "/test/frequency",
+      "deletedAt": "2025-07-18T21:26:25.381Z",
       "deletedCount": 1
     }
   }
