@@ -12,7 +12,14 @@
     "mcp-direct": "node service-manager.js",
     "mcp-only": "node mcp-server.js",
     "dashboard-only": "node enhanced-dashboard-server.js",
+    "test-websocket": "node test-websocket-osc.js",
     "test-config": "node test-config-reading.js",
+    "health-check": "node system-health-check.js",
+    "verify-fixes": "node verify-bug-fixes.js",
+    "production-readiness": "node production-readiness.js",
+    "test-bug-fixes": "node test-bug-fixes.js",
+    "final-production-test": "node final-production-test.js",
+    "test-websocket-autostart": "node test-websocket-autostart.js",
     "validate-config": "node validate-config.js",
     "test-pattern-management": "node test-pattern-management.js",
     "test-critical-fixes": "node test-critical-issues-fixes.js",
@@ -44,11 +51,9 @@
   "author": "MCP2OSC Team",
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "express": "^4.18.2",
-    "dgram": "^1.0.0",
-    "fs": "^0.0.1-security",
-    "path": "^0.12.7"
+    "@modelcontextprotocol/sdk": "^0.6.1",
+    "express": "^4.21.2",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"

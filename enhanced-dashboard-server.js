@@ -215,13 +215,58 @@ class EnhancedDashboardServer {
             }
         });
 
+        this.app.get('/api/test-osc', async (req, res) => {
+            try {
+                const { address = '/test/dashboard', args = [Math.random()] } = req.query;
+                
+                // Parse args if it's a string
+                let parsedArgs = args;
+                if (typeof args === 'string') {
+                    try {
+                        parsedArgs = JSON.parse(args);
+                    } catch (e) {
+                        parsedArgs = [args]; // Treat as single string argument
+                    }
+                }
+                
+                const result = await this.sendTestOSC(address, parsedArgs);
+                res.json({ 
+                    success: true, 
+                    message: `OSC sent: ${address} [${parsedArgs.join(', ')}]`,
+                    result 
+                });
+            } catch (error) {
+                console.error('Test OSC error:', error.message);
+                res.status(500).json({ 
+                    success: false, 
+                    error: error.message 
+                });
+            }
+        });
+
         this.app.post('/api/test-osc', async (req, res) => {
             try {
-                const { address, args } = req.body;
-                await this.sendTestOSC(address, args);
-                res.json({ success: true, message: 'OSC message sent' });
+                const { address, args = [] } = req.body;
+                
+                if (!address || !address.startsWith('/')) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'OSC address is required and must start with /'
+                    });
+                }
+                
+                const result = await this.sendTestOSC(address, args);
+                res.json({ 
+                    success: true, 
+                    message: `OSC sent: ${address} [${args.join(', ')}]`,
+                    result 
+                });
             } catch (error) {
-                res.status(400).json({ error: error.message });
+                console.error('Test OSC error:', error.message);
+                res.status(500).json({ 
+                    success: false, 
+                    error: error.message 
+                });
             }
         });
 
@@ -696,6 +741,10 @@ class EnhancedDashboardServer {
                     <div class="feature-title">Pattern Integration</div>
                     <div class="feature-desc">Use stored patterns for reliable communication</div>
                 </div>
+                <div class="feature">
+                    <div class="feature-title">WebSocket Streaming</div>
+                    <div class="feature-desc">Real-time parameter control via Claude commands</div>
+                </div>
             </div>
         </div>
         
@@ -734,6 +783,29 @@ class EnhancedDashboardServer {
         <div class="card">
             <h3>📊 OSC Patterns Status</h3>
             <div id="patterns-status">Loading...</div>
+        </div>
+        
+        // WebSocket Real-time Control
+        <div class="card">
+            <h3>🌐 WebSocket Real-time Control</h3>
+            <div class="test-section">
+                <p><strong>Status:</strong> Backend operational for Claude integration</p>
+                <p><strong>Usage:</strong> Ask Claude to start parameter streams or control OSC parameters in real-time</p>
+                <p><strong>Example:</strong> "Start sine wave OSC stream for synth.freq from 220 to 880 Hz at 10 Hz for 5 seconds"</p>
+                
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">
+                    <h4>📝 Available Claude Commands:</h4>
+                    <ul style="margin: 10px 0; padding-left: 20px; font-size: 14px;">
+                        <li><code>"Set synth.freq parameter to 440"</code></li>
+                        <li><code>"Start parameter stream for filter.cutoff from 100 to 8000 Hz"</code></li>
+                        <li><code>"Stop parameter stream for synth.freq"</code></li>
+                        <li><code>"Get WebSocket control status"</code></li>
+                    </ul>
+                    <p style="font-size: 12px; color: #666; margin-top: 10px;">
+                        <strong>Note:</strong> WebSocket server starts automatically when Claude uses these features.
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 

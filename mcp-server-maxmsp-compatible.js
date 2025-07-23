@@ -19,6 +19,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createSocket } from 'dgram';
 
+// Conditional WebSocket import
+let OSCWebSocketController = null;
+try {
+  const wsModule = await import('./websocket-osc-controller.js');
+  OSCWebSocketController = wsModule.OSCWebSocketController;
+} catch (error) {
+  console.error('⚠️  WebSocket controller not available:', error.message);
+  console.error('💡 Install ws package: npm install ws');
+}
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Set process title to avoid MaxMSP conflicts
@@ -56,6 +66,7 @@ class MaxMSPCompatibleMCPServer {
     this.oscReceiveSocket = null;
     this.isShuttingDown = false;
     this.fileWriteQueue = new Map(); // Prevent concurrent file writes
+    this.webSocketController = null; // WebSocket real-time controller
     
     this.setupToolHandlers();
     console.error('🚀 MaxMSP-Compatible MCP Server initialized');
@@ -399,6 +410,53 @@ class MaxMSPCompatibleMCPServer {
               },
               required: ['address']
             }
+          },
+          {
+            name: 'websocket_osc_control',
+            description: 'Real-time OSC parameter control via WebSocket. Enables live parameter streaming and real-time control.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                action: {
+                  type: 'string',
+                  enum: ['set_parameter', 'start_stream', 'stop_stream', 'get_status'],
+                  description: 'WebSocket control action to perform'
+                },
+                parameterId: {
+                  type: 'string',
+                  description: 'Parameter identifier (e.g., "synth.freq", "filter.cutoff")'
+                },
+                value: {
+                  type: 'number',
+                  description: 'Parameter value (for set_parameter action)'
+                },
+                streamConfig: {
+                  type: 'object',
+                  description: 'Stream configuration (for start_stream action)',
+                  properties: {
+                    oscAddress: { type: 'string', description: 'OSC address to stream to' },
+                    destination: { type: 'string', description: 'Destination host:port', default: 'default' },
+                    updateRate: { type: 'number', description: 'Updates per second (Hz)', default: 60 },
+                    valueFunction: { 
+                      type: 'string', 
+                      enum: ['sine', 'linear', 'random'],
+                      description: 'Value generation function',
+                      default: 'linear'
+                    },
+                    range: {
+                      type: 'array',
+                      items: { type: 'number' },
+                      minItems: 2,
+                      maxItems: 2,
+                      description: 'Value range [min, max]',
+                      default: [0, 1]
+                    },
+                    duration: { type: 'number', description: 'Stream duration in milliseconds (null for infinite)' }
+                  }
+                }
+              },
+              required: ['action']
+            }
           }
         ]
       };
@@ -423,6 +481,8 @@ class MaxMSPCompatibleMCPServer {
             return await this.handleGetSummary(args);
           case 'delete_osc_pattern':
             return await this.handleDeletePattern(args);
+          case 'websocket_osc_control':
+            return await this.handleWebSocketControl(args);
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -562,6 +622,61 @@ class MaxMSPCompatibleMCPServer {
   padTo4Bytes(buffer) {
     const padding = (4 - (buffer.length % 4)) % 4;
     return Buffer.concat([buffer, Buffer.alloc(padding)]);
+  }
+
+  async handleWebSocketControl(args) {
+    // Check if WebSocket controller is available
+    if (!OSCWebSocketController) {
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ WebSocket OSC Control not available\n\nThe 'ws' package is not installed. Please install it:\n\n  npm install ws\n\nThen restart the MCP server to enable WebSocket real-time control features.`
+        }]
+      };
+    }
+
+    // Initialize WebSocket controller if not already done
+    if (!this.webSocketController) {
+      await this.initializeWebSocketController();
+    }
+
+    try {
+      const result = await this.webSocketController.handleMCPWebSocketControl(args);
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ WebSocket OSC Control: ${args.action}\n\n${JSON.stringify(result, null, 2)}\n\n🌐 WebSocket server available on ws://localhost:${process.env.WEBSOCKET_PORT || '8765'}\n📊 Connect via dashboard or custom WebSocket client for real-time control.`
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ WebSocket OSC Control failed: ${error.message}\n\nAction: ${args.action}\nPlease check WebSocket server status and parameters.`
+        }]
+      };
+    }
+  }
+
+  async initializeWebSocketController() {
+    try {
+      if (!OSCWebSocketController) {
+        throw new Error('WebSocket controller not available. Install ws package: npm install ws');
+      }
+      
+      // Use WEBSOCKET_PORT environment variable or default to 8765
+      const webSocketPort = parseInt(process.env.WEBSOCKET_PORT || '8765');
+      this.webSocketController = new OSCWebSocketController(webSocketPort);
+      this.webSocketController.start();
+      
+      console.error(`🌐 WebSocket OSC Controller started on port ${webSocketPort}`);
+      console.error(`📱 Connect via: ws://localhost:${webSocketPort}`);
+      
+    } catch (error) {
+      console.error('❌ Failed to start WebSocket controller:', error.message);
+      throw error;
+    }
   }
 
   // Comprehensive pattern management methods with atomic writes
@@ -804,6 +919,10 @@ class MaxMSPCompatibleMCPServer {
     
     if (this.oscReceiveSocket) {
       this.oscReceiveSocket.close();
+    }
+    
+    if (this.webSocketController) {
+      this.webSocketController.stop();
     }
     
     // Wait for any pending file writes
