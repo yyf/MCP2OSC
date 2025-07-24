@@ -20,6 +20,8 @@
     "test-bug-fixes": "node test-bug-fixes.js",
     "final-production-test": "node final-production-test.js",
     "test-websocket-autostart": "node test-websocket-autostart.js",
+    "test-batch-osc": "node test-batch-osc.js",
+    "test-batch-osc-fix": "node test-batch-osc-fix.js",
     "validate-config": "node validate-config.js",
     "test-pattern-management": "node test-pattern-management.js",
     "test-critical-fixes": "node test-critical-issues-fixes.js",

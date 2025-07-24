@@ -67,6 +67,135 @@
       "createdAt": "2025-07-18T17:48:14.991Z",
       "updatedAt": "2025-07-18T17:48:14.991Z",
       "version": 1
+    },
+    {
+      "address": "/synth/note",
+      "application": "SuperCollider",
+      "category": "audio",
+      "description": "Main synthesizer note trigger with frequency, amplitude and duration control",
+      "parameters": [
+        {
+          "name": "frequency",
+          "type": "float",
+          "range": {
+            "min": 100,
+            "max": 2000
+          },
+          "unit": "Hz",
+          "default": 440
+        },
+        {
+          "name": "amplitude",
+          "type": "float",
+          "range": {
+            "min": 0,
+            "max": 1
+          },
+          "default": 0.5
+        },
+        {
+          "name": "duration",
+          "type": "float",
+          "range": {
+            "min": 0.1,
+            "max": 2
+          },
+          "unit": "seconds",
+          "default": 0.5
+        }
+      ],
+      "tags": [
+        "synthesis",
+        "note",
+        "pitch",
+        "amplitude",
+        "duration"
+      ],
+      "enabled": true,
+      "createdAt": "2025-07-24T00:21:19.818Z",
+      "updatedAt": "2025-07-24T00:21:19.822Z",
+      "version": 1
+    },
+    {
+      "address": "/synth/filter",
+      "application": "SuperCollider",
+      "category": "effects",
+      "description": "Real-time filter control for cutoff frequency and resonance parameters",
+      "parameters": [
+        {
+          "name": "cutoff",
+          "type": "float",
+          "range": {
+            "min": 200,
+            "max": 8000
+          },
+          "unit": "Hz",
+          "default": 1000
+        },
+        {
+          "name": "resonance",
+          "type": "float",
+          "range": {
+            "min": 0.1,
+            "max": 10
+          },
+          "default": 1
+        }
+      ],
+      "tags": [
+        "filter",
+        "cutoff",
+        "resonance",
+        "effects",
+        "realtime"
+      ],
+      "enabled": true,
+      "createdAt": "2025-07-24T00:21:24.454Z",
+      "updatedAt": "2025-07-24T00:21:24.454Z",
+      "version": 1
+    },
+    {
+      "address": "/score/transport",
+      "application": "SuperCollider",
+      "category": "control",
+      "description": "Transport control for OSC score playback with play/stop/tempo controls",
+      "parameters": [
+        {
+          "name": "command",
+          "type": "string",
+          "default": "stop"
+        },
+        {
+          "name": "tempo",
+          "type": "float",
+          "range": {
+            "min": 0.1,
+            "max": 4
+          },
+          "default": 1
+        },
+        {
+          "name": "position",
+          "type": "float",
+          "range": {
+            "min": 0,
+            "max": 100
+          },
+          "unit": "seconds",
+          "default": 0
+        }
+      ],
+      "tags": [
+        "transport",
+        "playback",
+        "tempo",
+        "control",
+        "score"
+      ],
+      "enabled": true,
+      "createdAt": "2025-07-24T00:21:28.957Z",
+      "updatedAt": "2025-07-24T00:21:28.957Z",
+      "version": 1
     }
   ],
   "metadata": {

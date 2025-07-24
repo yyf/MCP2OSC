@@ -457,6 +457,70 @@ class MaxMSPCompatibleMCPServer {
               },
               required: ['action']
             }
+          },
+          {
+            name: 'batch_send_osc',
+            description: 'Send multiple OSC messages in a single batch to a specified application or device for efficient real-time control.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                target: {
+                  type: 'string',
+                  description: 'IP address or hostname of the OSC receiver',
+                  pattern: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$|^[a-zA-Z0-9.-]+$',
+                  default: '127.0.0.1'
+                },
+                port: {
+                  type: 'integer',
+                  description: 'Port number of the OSC receiver',
+                  minimum: 1,
+                  maximum: 65535
+                },
+                messages: {
+                  type: 'array',
+                  description: 'Array of OSC messages to send in batch',
+                  minItems: 1,
+                  maxItems: 100,
+                  items: {
+                    type: 'object',
+                    properties: {
+                      address: {
+                        type: 'string',
+                        description: 'OSC address pattern for the message',
+                        pattern: '^/[a-zA-Z0-9_\\-/\\*\\?\\[\\]]*$'
+                      },
+                      type_tags: {
+                        type: 'string',
+                        description: 'OSC type tag string (e.g., "ifs" for integer, float, string)',
+                        pattern: '^[ifsbtTFNI]*$',
+                        default: ''
+                      },
+                      values: {
+                        type: 'array',
+                        description: 'Values corresponding to the type tags',
+                        default: []
+                      }
+                    },
+                    required: ['address'],
+                    additionalProperties: false
+                  }
+                },
+                transport_protocol: {
+                  type: 'string',
+                  enum: ['UDP', 'TCP'],
+                  description: 'Transport protocol for OSC messages',
+                  default: 'UDP'
+                },
+                send_mode: {
+                  type: 'string',
+                  enum: ['atomic', 'queued'],
+                  description: 'Batch sending mode - atomic sends all at once, queued sends with minimal delay',
+                  default: 'atomic'
+                }
+              },
+              required: ['target', 'port', 'messages'],
+              additionalProperties: false
+            }
           }
         ]
       };
@@ -483,6 +547,8 @@ class MaxMSPCompatibleMCPServer {
             return await this.handleDeletePattern(args);
           case 'websocket_osc_control':
             return await this.handleWebSocketControl(args);
+          case 'batch_send_osc':
+            return await this.handleBatchSendOSC(args);
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -581,38 +647,279 @@ class MaxMSPCompatibleMCPServer {
     }
   }
 
-  createOSCMessage(address, args) {
-    // Simple OSC message creation
+  async handleBatchSendOSC(args) {
+    const { target, port, messages, transport_protocol = 'UDP', send_mode = 'atomic' } = args;
+    
+    try {
+      // Validate target and port
+      if (!target || !port) {
+        throw new Error('Target and port are required for batch OSC sending');
+      }
+      
+      if (port < 1 || port > 65535) {
+        throw new Error('Port must be between 1 and 65535');
+      }
+      
+      if (!Array.isArray(messages) || messages.length === 0) {
+        throw new Error('Messages array is required and cannot be empty');
+      }
+      
+      if (messages.length > 100) {
+        throw new Error('Maximum 100 messages allowed per batch');
+      }
+      
+      // Validate and process each message
+      const processedMessages = [];
+      
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        
+        if (!msg.address || !msg.address.startsWith('/')) {
+          throw new Error(`Message ${i + 1}: OSC address is required and must start with '/'`);
+        }
+        
+        // Validate type tags if provided
+        if (msg.type_tags && !/^[ifsbtTFNI]*$/.test(msg.type_tags)) {
+          throw new Error(`Message ${i + 1}: Invalid type tags '${msg.type_tags}'. Use: i(int), f(float), s(string), b(blob), t(time), T(true), F(false), N(null), I(impulse)`);
+        }
+        
+        const values = msg.values || [];
+        const typeTags = msg.type_tags || '';
+        
+        // Auto-generate type tags if not provided
+        let finalTypeTags = typeTags;
+        if (!finalTypeTags && values.length > 0) {
+          finalTypeTags = values.map(value => {
+            if (typeof value === 'number') {
+              return Number.isInteger(value) ? 'i' : 'f';
+            } else if (typeof value === 'string') {
+              return 's';
+            } else if (typeof value === 'boolean') {
+              return value ? 'T' : 'F';
+            } else {
+              return 's'; // Default to string
+            }
+          }).join('');
+        }
+        
+        // Validate type tags match values
+        if (finalTypeTags.length !== values.length) {
+          throw new Error(`Message ${i + 1}: Type tags length (${finalTypeTags.length}) must match values length (${values.length})`);
+        }
+        
+        processedMessages.push({
+          address: msg.address,
+          typeTags: finalTypeTags,
+          values: values,
+          originalIndex: i + 1
+        });
+      }
+      
+      // Send messages based on mode
+      const results = [];
+      let successCount = 0;
+      let errorCount = 0;
+      
+      if (send_mode === 'atomic') {
+        // Send all messages at once
+        const sendPromises = processedMessages.map(async (msg, index) => {
+          try {
+            const oscMessage = this.createOSCMessage(msg.address, msg.values, msg.typeTags);
+            await this.sendOSCMessageToTarget(oscMessage, target, port, transport_protocol);
+            
+            results.push({
+              index: msg.originalIndex,
+              address: msg.address,
+              status: 'success',
+              timestamp: Date.now()
+            });
+            
+            successCount++;
+            
+            return {
+              address: msg.address,
+              values: msg.values,
+              status: 'sent'
+            };
+          } catch (error) {
+            errorCount++;
+            results.push({
+              index: msg.originalIndex,
+              address: msg.address,
+              status: 'error',
+              error: error.message,
+              timestamp: Date.now()
+            });
+            
+            throw error;
+          }
+        });
+        
+        try {
+          await Promise.all(sendPromises);
+        } catch (error) {
+          // Some messages may have failed, but continue with results
+        }
+        
+      } else if (send_mode === 'queued') {
+        // Send messages sequentially with minimal delay
+        for (const msg of processedMessages) {
+          try {
+            const oscMessage = this.createOSCMessage(msg.address, msg.values, msg.typeTags);
+            await this.sendOSCMessageToTarget(oscMessage, target, port, transport_protocol);
+            
+            results.push({
+              index: msg.originalIndex,
+              address: msg.address,
+              status: 'success',
+              timestamp: Date.now()
+            });
+            
+            successCount++;
+            
+            // Small delay between messages in queued mode
+            await new Promise(resolve => setTimeout(resolve, 1));
+            
+          } catch (error) {
+            errorCount++;
+            results.push({
+              index: msg.originalIndex,
+              address: msg.address,
+              status: 'error',
+              error: error.message,
+              timestamp: Date.now()
+            });
+          }
+        }
+      }
+      
+      // Log the batch operation
+      await this.atomicWriteOSCMessage({
+        timestamp: new Date().toISOString(),
+        address: 'batch_send',
+        args: {
+          target,
+          port,
+          messageCount: messages.length,
+          transport: transport_protocol,
+          mode: send_mode,
+          success: successCount,
+          errors: errorCount
+        },
+        direction: 'outbound',
+        source: { address: target, port }
+      });
+      
+      const summary = {
+        totalMessages: messages.length,
+        successful: successCount,
+        failed: errorCount,
+        target: `${target}:${port}`,
+        transport: transport_protocol,
+        sendMode: send_mode,
+        timestamp: new Date().toISOString()
+      };
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ Batch OSC Send Complete\n\n📊 Summary:\n- Target: ${target}:${port}\n- Transport: ${transport_protocol}\n- Mode: ${send_mode}\n- Total Messages: ${messages.length}\n- Successful: ${successCount}\n- Failed: ${errorCount}\n\n${errorCount === 0 ? '🎯 All messages sent successfully!' : `⚠️ ${errorCount} message(s) failed to send`}\n\n📋 Detailed Results:\n${JSON.stringify(results, null, 2)}`
+        }]
+      };
+      
+    } catch (error) {
+      await this.atomicWriteOSCMessage({
+        timestamp: new Date().toISOString(),
+        address: 'batch_send_error',
+        args: {
+          target,
+          port,
+          error: error.message,
+          messageCount: messages?.length || 0
+        },
+        direction: 'error',
+        source: { address: target, port }
+      });
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ Batch OSC Send Failed: ${error.message}\n\nTarget: ${target}:${port}\nMessages: ${messages?.length || 0}\nTransport: ${transport_protocol}\nMode: ${send_mode}\n\nPlease check your target address, port, and message format.`
+        }]
+      };
+    }
+  }
+
+  async sendOSCMessageToTarget(oscMessage, target, port, protocol = 'UDP') {
+    return new Promise((resolve, reject) => {
+      if (protocol === 'UDP') {
+        const socket = createSocket('udp4');
+        
+        socket.send(oscMessage, port, target, (error) => {
+          socket.close();
+          if (error) {
+            reject(error);
+          } else {
+            resolve();
+          }
+        });
+        
+        socket.on('error', (error) => {
+          socket.close();
+          reject(error);
+        });
+        
+      } else {
+        // TCP support could be added here if needed
+        reject(new Error('TCP transport not yet implemented'));
+      }
+    });
+  }
+
+  createOSCMessage(address, values = [], typeTags = '') {
+    // Create OSC message with proper padding
     const addressBuffer = Buffer.from(address + '\0');
     const addressPadded = this.padTo4Bytes(addressBuffer);
     
-    const typeTagString = ',' + args.map(arg => {
-      if (typeof arg === 'number') {
-        return Number.isInteger(arg) ? 'i' : 'f';
-      } else if (typeof arg === 'boolean') {
-        return arg ? 'T' : 'F';
+    // Create type tag string
+    const typeTagString = ',' + (typeTags || values.map(value => {
+      if (typeof value === 'number') {
+        return Number.isInteger(value) ? 'i' : 'f';
+      } else if (typeof value === 'boolean') {
+        return value ? 'T' : 'F';
       } else {
         return 's';
       }
-    }).join('');
+    }).join(''));
     
     const typeTagBuffer = this.padTo4Bytes(Buffer.from(typeTagString + '\0'));
     
-    const argBuffers = args.map(arg => {
-      if (typeof arg === 'number') {
-        if (Number.isInteger(arg)) {
-          const buffer = Buffer.alloc(4);
-          buffer.writeInt32BE(arg, 0);
-          return buffer;
-        } else {
-          const buffer = Buffer.alloc(4);
-          buffer.writeFloatBE(arg, 0);
-          return buffer;
-        }
-      } else if (typeof arg === 'boolean') {
-        return Buffer.alloc(0);
-      } else {
-        return this.padTo4Bytes(Buffer.from(String(arg) + '\0'));
+    // Create argument buffers
+    const argBuffers = values.map((value, index) => {
+      const expectedType = typeTags[index] || (typeof value === 'number' ? (Number.isInteger(value) ? 'i' : 'f') : 's');
+      
+      switch (expectedType) {
+        case 'i':
+          const intBuffer = Buffer.alloc(4);
+          intBuffer.writeInt32BE(parseInt(value), 0);
+          return intBuffer;
+          
+        case 'f':
+          const floatBuffer = Buffer.alloc(4);
+          floatBuffer.writeFloatBE(parseFloat(value), 0);
+          return floatBuffer;
+          
+        case 's':
+          return this.padTo4Bytes(Buffer.from(String(value) + '\0'));
+          
+        case 'T':
+        case 'F':
+        case 'N':
+        case 'I':
+          return Buffer.alloc(0); // No data for these types
+          
+        default:
+          return this.padTo4Bytes(Buffer.from(String(value) + '\0'));
       }
     });
 
@@ -927,6 +1234,18 @@ class MaxMSPCompatibleMCPServer {
     
     // Wait for any pending file writes
     await Promise.all(this.fileWriteQueue.values());
+  }
+
+  async logOSCMessage(address, args, direction = 'outbound', source = null) {
+    const message = {
+      timestamp: new Date().toISOString(),
+      address,
+      args: typeof args === 'object' && !Array.isArray(args) ? args : [args],
+      direction,
+      source: source || { address: CONFIG.OSC_HOST, port: CONFIG.OSC_SEND_PORT }
+    };
+    
+    await this.atomicWriteOSCMessage(message);
   }
 }
 
