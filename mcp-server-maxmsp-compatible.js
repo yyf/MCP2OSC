@@ -36,8 +36,8 @@ process.title = 'mcp2osc-server';
 
 // Configuration with MaxMSP compatibility
 const CONFIG = {
-  OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '7500'),
-  OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '7501'),
+  OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '9500'),
+  OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '9501'),
   OSC_HOST: process.env.OSC_HOST || process.env.DEFAULT_OSC_HOST || '127.0.0.1',
   PATTERNS_FILE: path.join(__dirname, 'extracted-osc-patterns.json'),
   LOG_FILE: path.join(__dirname, 'logs', 'mcp2osc.log'),
@@ -409,7 +409,7 @@ class MaxMSPCompatibleMCPServer {
                 address: { type: 'string', description: 'OSC address (must start with /)' },
                 args: { type: 'array', default: [], description: 'Arguments to send' },
                 host: { type: 'string', default: '127.0.0.1', description: 'Target host' },
-                port: { type: 'number', default: 7500, description: 'Target port' }
+                port: { type: 'number', default: 9500, description: 'Target port' }
               },
               required: ['address']
             }
@@ -1532,12 +1532,70 @@ class MaxMSPCompatibleMCPServer {
     };
   }
 
+  // Enhanced pattern loading with validation and cleanup
   async loadPatterns() {
     try {
       const content = await fs.readFile(CONFIG.PATTERNS_FILE, 'utf8');
-      return JSON.parse(content);
+      const data = JSON.parse(content);
+      
+      // Validate and clean patterns
+      if (data.patterns && Array.isArray(data.patterns)) {
+        // Filter out incomplete/malformed patterns
+        const validPatterns = data.patterns.filter(pattern => {
+          return pattern && 
+                 typeof pattern === 'object' && 
+                 pattern.address && 
+                 typeof pattern.address === 'string' &&
+                 pattern.address.startsWith('/') &&
+                 pattern.application &&
+                 pattern.category &&
+                 pattern.description;
+        });
+        
+        // Update metadata to match actual count
+        data.patterns = validPatterns;
+        data.metadata = {
+          ...data.metadata,
+          totalPatterns: validPatterns.length,
+          lastUpdate: new Date().toISOString(),
+          lastValidation: new Date().toISOString()
+        };
+        
+        // Save cleaned data back to file if changes were made
+        const originalCount = data.metadata.totalPatterns || 0;
+        if (validPatterns.length !== originalCount) {
+          console.error(`🔧 Fixed pattern count discrepancy: ${validPatterns.length} valid patterns (was ${originalCount})`);
+          await this.savePatterns(data);
+        }
+        
+        return data;
+      }
+      
+      return {
+        patterns: [],
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          totalPatterns: 0,
+          applications: [],
+          categories: [],
+          lastUpdate: new Date().toISOString(),
+          version: "1.0.0"
+        }
+      };
     } catch (error) {
-      return { patterns: [], metadata: {} };
+      console.error('Error loading patterns:', error.message);
+      return {
+        patterns: [],
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          totalPatterns: 0,
+          applications: [],
+          categories: [],
+          lastUpdate: new Date().toISOString(),
+          version: "1.0.0",
+          error: error.message
+        }
+      };
     }
   }
 

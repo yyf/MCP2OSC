@@ -18,8 +18,8 @@ class ServiceManager {
   constructor() {
     this.services = new Map();
     this.config = {
-      OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '7500'),
-      OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '7501'),
+      OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '9500'),
+      OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '9501'),
       OSC_HOST: process.env.OSC_HOST || '127.0.0.1',
       DASHBOARD_PORT: parseInt(process.env.DASHBOARD_PORT || '3001'),
       MCP_MODE: process.env.MCP_MODE || 'standalone',
@@ -382,7 +382,7 @@ class ServiceManager {
         ...process.env,
         WEB_PORT: this.config.DASHBOARD_PORT.toString(),
         OSC_SEND_PORT: this.config.OSC_SEND_PORT.toString(),
-        OSC_RECEIVE_PORT: (this.config.OSC_RECEIVE_PORT + 1).toString(), // Avoid conflict
+        OSC_RECEIVE_PORT: (this.config.OSC_RECEIVE_PORT + 10).toString(), // Avoid conflict with MCP server
         OSC_HOST: this.config.OSC_HOST
       },
       stdio: ['ignore', 'pipe', 'pipe']
