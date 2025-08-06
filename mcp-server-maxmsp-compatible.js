@@ -83,25 +83,15 @@ class MaxMSPCompatibleMCPServer {
       
       this.oscReceiveSocket.on('message', async (msg, rinfo) => {
         try {
-          const message = {
-            timestamp: new Date().toISOString(),
-            address: this.parseOSCAddress(msg),
-            args: this.parseOSCArgs(msg),
-            source: {
-              address: rinfo.address,
-              port: rinfo.port
-            },
-            direction: 'inbound',
-            raw: msg.toString('hex')
-          };
-          
-          console.error(`📥 OSC received: ${message.address} [${message.args.join(', ')}] from ${rinfo.address}:${rinfo.port}`);
-          
-          // Use atomic write to prevent corruption
-          await this.atomicWriteOSCMessage(message);
+          // Check if this is an OSC bundle or single message
+          if (this.isOSCBundle(msg)) {
+            await this.handleOSCBundle(msg, rinfo);
+          } else {
+            await this.handleOSCMessage(msg, rinfo);
+          }
           
         } catch (error) {
-          console.error(`Error processing OSC message: ${error.message}`);
+          console.error('Error processing OSC data:', error.message);
         }
       });
       
@@ -138,6 +128,145 @@ class MaxMSPCompatibleMCPServer {
     } catch (error) {
       return '/parse-error';
     }
+  }
+
+  // OSC Bundle Detection and Handling
+  isOSCBundle(buffer) {
+    // OSC bundles start with "#bundle" (8 bytes)
+    const bundleHeader = Buffer.from('#bundle\0');
+    return buffer.length >= 8 && buffer.subarray(0, 8).equals(bundleHeader);
+  }
+
+  async handleOSCBundle(buffer, rinfo) {
+    try {
+      console.error(`📦 OSC Bundle received from ${rinfo.address}:${rinfo.port}`);
+      
+      // Parse bundle header
+      let offset = 8; // Skip "#bundle" header
+      
+      // Read timetag (8 bytes)
+      if (offset + 8 > buffer.length) {
+        throw new Error('Invalid bundle: insufficient data for timetag');
+      }
+      
+      const timetag = this.parseOSCTimetag(buffer.subarray(offset, offset + 8));
+      offset += 8;
+      
+      console.error(`📦 Bundle timetag: ${timetag.toISOString()}`);
+      
+      // Parse bundle elements
+      const elements = [];
+      let elementCount = 0;
+      
+      while (offset < buffer.length && elementCount < 100) { // Safety limit
+        // Read element size (4 bytes)
+        if (offset + 4 > buffer.length) {
+          break; // End of bundle
+        }
+        
+        const elementSize = buffer.readUInt32BE(offset);
+        offset += 4;
+        
+        if (elementSize === 0 || offset + elementSize > buffer.length) {
+          console.warn(`Invalid element size ${elementSize} at offset ${offset}`);
+          break;
+        }
+        
+        // Extract element data
+        const elementData = buffer.subarray(offset, offset + elementSize);
+        offset += elementSize;
+        
+        // Process element (could be message or nested bundle)
+        if (this.isOSCBundle(elementData)) {
+          // Nested bundle - recursively handle
+          await this.handleOSCBundle(elementData, rinfo);
+        } else {
+          // OSC message
+          await this.handleOSCMessage(elementData, rinfo);
+        }
+        
+        elements.push({
+          type: this.isOSCBundle(elementData) ? 'bundle' : 'message',
+          size: elementSize
+        });
+        
+        elementCount++;
+      }
+      
+      // Log bundle information
+      const bundleInfo = {
+        timestamp: new Date().toISOString(),
+        address: '#bundle',
+        args: {
+          bundleTimetag: timetag.toISOString(),
+          elementCount: elements.length,
+          elements: elements
+        },
+        source: { address: rinfo.address, port: rinfo.port },
+        direction: 'inbound',
+        type: 'bundle'
+      };
+      
+      await this.atomicWriteOSCMessage(bundleInfo);
+      
+      console.error(`📦 Processed OSC bundle with ${elements.length} elements`);
+      
+    } catch (error) {
+      console.error('Error processing OSC bundle:', error.message);
+      
+      // Log error for debugging
+      const errorInfo = {
+        timestamp: new Date().toISOString(),
+        address: '#bundle_error',
+        args: { error: error.message },
+        source: { address: rinfo.address, port: rinfo.port },
+        direction: 'error',
+        type: 'bundle_error'
+      };
+      
+      await this.atomicWriteOSCMessage(errorInfo);
+    }
+  }
+
+  async handleOSCMessage(buffer, rinfo) {
+    try {
+      const address = this.parseOSCAddress(buffer);
+      const args = this.parseOSCArgs(buffer);
+      
+      console.error(`📥 OSC received: ${address} [${args.join(', ')}] from ${rinfo.address}:${rinfo.port}`);
+      
+      // Store inbound message with direction
+      const inboundMessage = {
+        timestamp: new Date().toISOString(),
+        address,
+        args,
+        source: { address: rinfo.address, port: rinfo.port },
+        direction: 'inbound',
+        raw: buffer.toString('hex'),
+        type: 'message'
+      };
+      
+      await this.atomicWriteOSCMessage(inboundMessage);
+      
+    } catch (error) {
+      console.error('Error processing OSC message:', error.message);
+    }
+  }
+
+  parseOSCTimetag(buffer) {
+    // OSC timetag is 8 bytes: 4 bytes seconds since 1900, 4 bytes fractional seconds
+    const seconds = buffer.readUInt32BE(0);
+    const fraction = buffer.readUInt32BE(4);
+    
+    // Convert from NTP epoch (1900) to Unix epoch (1970)
+    const SECONDS_FROM_1900_TO_1970 = 2208988800;
+    const unixSeconds = seconds - SECONDS_FROM_1900_TO_1970;
+    
+    // Convert fraction to milliseconds
+    const milliseconds = Math.round((fraction / 0xFFFFFFFF) * 1000);
+    
+    // Create JavaScript Date
+    return new Date(unixSeconds * 1000 + milliseconds);
   }
 
   parseOSCArgs(buffer) {
@@ -513,13 +642,66 @@ class MaxMSPCompatibleMCPServer {
                 },
                 send_mode: {
                   type: 'string',
-                  enum: ['atomic', 'queued'],
-                  description: 'Batch sending mode - atomic sends all at once, queued sends with minimal delay',
+                  enum: ['atomic', 'queued', 'bundle'],
+                  description: 'Batch sending mode - atomic sends all at once, queued sends with minimal delay, bundle sends as OSC bundle',
                   default: 'atomic'
+                },
+                timetag: {
+                  type: 'number',
+                  description: 'Bundle timetag in milliseconds since Unix epoch (for bundle mode only)',
+                  minimum: 0
                 }
               },
               required: ['target', 'port', 'messages'],
               additionalProperties: false
+            }
+          },
+          {
+            name: 'send_osc_bundle',
+            description: 'Send multiple OSC messages as a single OSC bundle with precise timing.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                target: {
+                  type: 'string',
+                  description: 'IP address or hostname of the OSC receiver',
+                  default: '127.0.0.1'
+                },
+                port: {
+                  type: 'integer',
+                  description: 'Port number of the OSC receiver',
+                  minimum: 1,
+                  maximum: 65535
+                },
+                messages: {
+                  type: 'array',
+                  description: 'Array of OSC messages to include in the bundle',
+                  minItems: 1,
+                  maxItems: 50,
+                  items: {
+                    type: 'object',
+                    properties: {
+                      address: {
+                        type: 'string',
+                        description: 'OSC address pattern',
+                        pattern: '^/[a-zA-Z0-9_\\-/\\*\\?\\[\\]]*$'
+                      },
+                      args: {
+                        type: 'array',
+                        description: 'Arguments for the OSC message',
+                        default: []
+                      }
+                    },
+                    required: ['address']
+                  }
+                },
+                timetag: {
+                  type: 'number',
+                  description: 'Bundle execution time in milliseconds since Unix epoch (0 for immediate)',
+                  default: 0
+                }
+              },
+              required: ['target', 'port', 'messages']
             }
           }
         ]
@@ -549,6 +731,8 @@ class MaxMSPCompatibleMCPServer {
             return await this.handleWebSocketControl(args);
           case 'batch_send_osc':
             return await this.handleBatchSendOSC(args);
+          case 'send_osc_bundle':
+            return await this.handleSendOSCBundle(request.params.arguments);
           default:
             throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
         }
@@ -720,7 +904,49 @@ class MaxMSPCompatibleMCPServer {
       let successCount = 0;
       let errorCount = 0;
       
-      if (send_mode === 'atomic') {
+      if (send_mode === 'bundle') {
+        // Send as OSC bundle
+        try {
+          const bundleMessages = processedMessages.map(msg => ({
+            address: msg.address,
+            args: msg.values
+          }));
+          
+          const bundleBuffer = this.createOSCBundle(bundleMessages, args.timetag || 0);
+          const socket = createSocket({ 
+            type: 'udp4', 
+            reuseAddr: CONFIG.SOCKET_REUSE 
+          });
+          
+          try {
+            await new Promise((resolve, reject) => {
+              socket.send(bundleBuffer, port, target, (error) => {
+                if (error) reject(error);
+                else resolve();
+              });
+            });
+            
+            successCount = processedMessages.length;
+            results.push({
+              success: true,
+              bundleSize: processedMessages.length,
+              message: 'Bundle sent successfully'
+            });
+            
+          } finally {
+            socket.close();
+          }
+          
+        } catch (error) {
+          errorCount = processedMessages.length;
+          results.push({
+            success: false,
+            error: error.message,
+            bundleSize: processedMessages.length
+          });
+        }
+        
+      } else if (send_mode === 'atomic') {
         // Send all messages at once
         const sendPromises = processedMessages.map(async (msg, index) => {
           try {
@@ -850,30 +1076,100 @@ class MaxMSPCompatibleMCPServer {
     }
   }
 
-  async sendOSCMessageToTarget(oscMessage, target, port, protocol = 'UDP') {
-    return new Promise((resolve, reject) => {
-      if (protocol === 'UDP') {
-        const socket = createSocket('udp4');
-        
-        socket.send(oscMessage, port, target, (error) => {
-          socket.close();
-          if (error) {
-            reject(error);
-          } else {
-            resolve();
-          }
-        });
-        
-        socket.on('error', (error) => {
-          socket.close();
-          reject(error);
-        });
-        
-      } else {
-        // TCP support could be added here if needed
-        reject(new Error('TCP transport not yet implemented'));
+  async handleSendOSCBundle(args) {
+    const { target = CONFIG.OSC_HOST, port = CONFIG.OSC_SEND_PORT, messages, timetag = 0 } = args;
+    
+    try {
+      // Validate target and port
+      if (!target || !port) {
+        throw new Error('Target and port are required');
       }
-    });
+      
+      if (port < 1 || port > 65535) {
+        throw new Error('Port must be between 1 and 65535');
+      }
+      
+      if (!Array.isArray(messages) || messages.length === 0) {
+        throw new Error('Messages array is required and must not be empty');
+      }
+      
+      if (messages.length > 50) {
+        throw new Error('Bundle cannot contain more than 50 messages');
+      }
+      
+      // Validate each message
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i];
+        if (!msg.address || !msg.address.startsWith('/')) {
+          throw new Error(`Message ${i + 1}: OSC address must start with "/"`);
+        }
+      }
+      
+      // Create OSC bundle
+      const bundleBuffer = this.createOSCBundle(messages, timetag);
+      
+      // Send bundle
+      const socket = createSocket({ 
+        type: 'udp4', 
+        reuseAddr: CONFIG.SOCKET_REUSE 
+      });
+      
+      try {
+        await new Promise((resolve, reject) => {
+          socket.send(bundleBuffer, port, target, (error) => {
+            if (error) reject(error);
+            else resolve();
+          });
+        });
+        
+        console.error(`📦 OSC Bundle sent: ${messages.length} messages → ${target}:${port}`);
+        
+        // Log outbound bundle
+        const bundleMessage = {
+          timestamp: new Date().toISOString(),
+          address: '#bundle',
+          args: {
+            messageCount: messages.length,
+            timetag: timetag || 'immediate',
+            messages: messages.map(m => ({ address: m.address, argCount: (m.args || []).length }))
+          },
+          source: { address: target, port },
+          direction: 'outbound',
+          type: 'bundle'
+        };
+        
+        await this.atomicWriteOSCMessage(bundleMessage);
+        
+        return {
+          content: [{
+            type: 'text',
+            text: `✅ OSC Bundle sent successfully!\n\nTarget: ${target}:${port}\nMessages: ${messages.length}\nTimetag: ${timetag || 'immediate'}\n\n📦 Bundle contents:\n${messages.map((m, i) => `${i + 1}. ${m.address} [${(m.args || []).join(', ')}]`).join('\n')}\n\n📊 Bundle logged with direction tracking for dashboard display.`
+          }]
+        };
+        
+      } finally {
+        socket.close();
+      }
+      
+    } catch (error) {
+      console.error(`❌ OSC Bundle send failed: ${error.message}`);
+      
+      // Log error
+      await this.atomicWriteOSCMessage({
+        timestamp: new Date().toISOString(),
+        address: '#bundle_error',
+        args: { error: error.message, target, port, messageCount: messages?.length || 0 },
+        direction: 'error',
+        type: 'bundle_error'
+      });
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ OSC Bundle send failed: ${error.message}\n\nTarget: ${target}:${port}\nMessages: ${messages?.length || 0}\n\nPlease check your target address, port, and message format.`
+        }]
+      };
+    }
   }
 
   createOSCMessage(address, values = [], typeTags = '') {
@@ -929,6 +1225,58 @@ class MaxMSPCompatibleMCPServer {
   padTo4Bytes(buffer) {
     const padding = (4 - (buffer.length % 4)) % 4;
     return Buffer.concat([buffer, Buffer.alloc(padding)]);
+  }
+
+  createOSCBundle(messages, timetag = 0) {
+    // Create bundle header: #bundle\0 (8 bytes)
+    const bundleHeader = Buffer.from('#bundle\0');
+    
+    // Create timetag (8 bytes)
+    const timetagBuffer = this.createOSCTimetag(timetag);
+    
+    // Create message elements
+    const messageBuffers = [];
+    
+    for (const message of messages) {
+      // Create OSC message
+      const oscMessage = this.createOSCMessage(message.address, message.args || []);
+      
+      // Create size prefix (4 bytes, big-endian)
+      const sizeBuffer = Buffer.alloc(4);
+      sizeBuffer.writeUInt32BE(oscMessage.length, 0);
+      
+      // Add size + message
+      messageBuffers.push(sizeBuffer);
+      messageBuffers.push(oscMessage);
+    }
+    
+    // Combine all parts
+    return Buffer.concat([bundleHeader, timetagBuffer, ...messageBuffers]);
+  }
+
+  createOSCTimetag(timestamp) {
+    // Create 8-byte OSC timetag
+    const buffer = Buffer.alloc(8);
+    
+    if (timestamp === 0) {
+      // Immediate execution: special timetag of 1
+      buffer.writeUInt32BE(0, 0);
+      buffer.writeUInt32BE(1, 4);
+    } else {
+      // Convert Unix timestamp (ms) to NTP timestamp
+      const unixSeconds = Math.floor(timestamp / 1000);
+      const unixFraction = (timestamp % 1000) / 1000;
+      
+      // Convert to NTP epoch (1900-based)
+      const SECONDS_FROM_1900_TO_1970 = 2208988800;
+      const ntpSeconds = unixSeconds + SECONDS_FROM_1900_TO_1970;
+      const ntpFraction = Math.round(unixFraction * 0xFFFFFFFF);
+      
+      buffer.writeUInt32BE(ntpSeconds, 0);
+      buffer.writeUInt32BE(ntpFraction, 4);
+    }
+    
+    return buffer;
   }
 
   async handleWebSocketControl(args) {

@@ -1,74 +1,38 @@
 {
   "name": "mcp2osc",
   "version": "1.0.0",
-  "description": "Model Context Protocol to Open Sound Control Bridge - Enables Claude AI to manage OSC patterns and send OSC messages",
+  "description": "Model Context Protocol to Open Sound Control Bridge",
   "type": "module",
-  "main": "mcp-server.js",
+  "main": "mcp-server-maxmsp-compatible.js",
   "scripts": {
-    "start": "node service-manager.js",
-    "dev": "node service-manager.js",
-    "stop": "node stop.js",
-    "mcp": "node start-with-config.js",
-    "mcp-direct": "node service-manager.js",
-    "mcp-only": "node mcp-server.js",
-    "dashboard-only": "node enhanced-dashboard-server.js",
-    "test-websocket": "node test-websocket-osc.js",
-    "test-config": "node test-config-reading.js",
-    "health-check": "node system-health-check.js",
-    "verify-fixes": "node verify-bug-fixes.js",
-    "production-readiness": "node production-readiness.js",
-    "test-bug-fixes": "node test-bug-fixes.js",
-    "final-production-test": "node final-production-test.js",
-    "test-websocket-autostart": "node test-websocket-autostart.js",
-    "test-batch-osc": "node test-batch-osc.js",
-    "test-batch-osc-fix": "node test-batch-osc-fix.js",
-    "validate-config": "node validate-config.js",
-    "test-pattern-management": "node test-pattern-management.js",
-    "test-critical-fixes": "node test-critical-issues-fixes.js",
-    "test-osc-parsing": "node test-osc-parsing-fix.js",
-    "fix-osc-messages": "node fix-osc-messages-format.js",
+    "start": "node start.js",
+    "mcp": "node service-manager.js",
+    "mcp-direct": "node mcp-server-maxmsp-compatible.js",
     "mcp-maxmsp": "node mcp-server-maxmsp-compatible.js",
+    "dashboard-only": "node enhanced-dashboard-server.js",
+    "test-config": "node -e \"console.log('OSC Config:', {host: process.env.OSC_HOST || '127.0.0.1', send: process.env.OSC_SEND_PORT || '9500', receive: process.env.OSC_RECEIVE_PORT || '9501'})\"",
     "test-maxmsp": "node test-maxmsp-integration.js",
-    "analyze-system": "node system-analysis-report.js",
-    "mcp-complete": "node mcp-server-complete.js",
-    "test": "node test.js",
-    "test-comprehensive": "node test-comprehensive.js",
-    "test-service-manager": "node test-service-manager.js",
-    "test-osc": "node test-osc.js",
-    "production-check": "node production-readiness.js",
-    "generate-logs": "node generate-test-logs.js",
-    "fix-logging": "node fix-logging.js",
-    "diagnose": "node mcp-diagnostic.js"
+    "test-websocket": "node test-websocket-osc.js",
+    "test-batch": "node test-batch-osc.js",
+    "test-bundle": "node test-osc-bundle.js",
+    "health-check": "node system-health-check.js",
+    "production-readiness": "node production-readiness.js",
+    "analyze-system": "node system-analysis-report.js"
   },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  },
+  "devDependencies": {},
   "keywords": [
-    "mcp",
     "osc",
+    "mcp",
     "claude",
-    "model-context-protocol",
-    "open-sound-control",
     "music",
-    "audio",
-    "ai"
+    "maxmsp",
+    "touchdesigner"
   ],
   "author": "MCP2OSC Team",
-  "license": "MIT",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.6.1",
-    "express": "^4.21.2",
-    "ws": "^8.18.3"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-org/mcp2osc.git"
-  },
-  "bugs": {
-    "url": "https://github.com/your-org/mcp2osc/issues"
-  },
-  "homepage": "https://github.com/your-org/mcp2osc#readme"
+  "license": "MIT"
 }
