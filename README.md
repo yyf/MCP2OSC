@@ -15,7 +15,7 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
    ```
 
 3. **Configure your LLM application**
-   Add to your Claude Desktop MCP configuration:
+   Add to your Claude Desktop MCP configuration file, usually under "~/Library/Application\ Support/Claude" on macOS:
    ```json
    {
       "mcpServers": {
