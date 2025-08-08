@@ -1,5 +1,5 @@
 # MCP2OSC
-A bridge application that translates Model Context Protocol (MCP) message to Open Sound Control (OSC) message
+MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 
 ### Installation
 
@@ -14,38 +14,33 @@ A bridge application that translates Model Context Protocol (MCP) message to Ope
    npm install
    ```
 
-3. **Start the application**
-   ```bash
-   npm start
-   ```
-
-4. **Configure your LLM application**
+3. **Configure your LLM application**
    Add to your Claude Desktop MCP configuration:
    ```json
    {
-     "mcpServers": {
-       "mcp2osc": {
-         "command": "/opt/homebrew/bin/node",
-         "args": ["/Users/yyf/Code/Prototypes/2025-4/MCP2OSC/mcp-server.js"]
-       }
-     }
+      "mcpServers": {
+         "mcp2osc": {
+            "command": "node",
+            "args": ["/Users/.../MCP2OSC/mcp-server-maxmsp-compatible.js"],
+            "cwd": "/Users/.../MCP2OSC",
+            "env": {
+            "OSC_HOST": "127.0.0.1",
+            "OSC_SEND_PORT": "9500",
+            "OSC_RECEIVE_PORT": "9501", 
+            "WEBSOCKET_PORT": "8765",
+            "WEBSOCKET_OSC_PORT": "9500"
+            }
+         }
+      }
    }
    ```
 
-5. **Open the dashboard**
-   Visit `http://localhost:3001` to monitor and configure the system
+4. **Start the application**
+   ```bash
+   npm run mcp
+   ```
 
-### Debug Mode
-
-Enable detailed logging:
-```bash
-MCP2OSC_LOG_LEVEL=debug npm start
-```
-
-View real-time logs:
-```bash
-tail -f logs/mcp2osc.log
-```
+5. **Start the LLM application, i.e. Claude**   
 
 ## License
 
