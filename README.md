@@ -40,7 +40,14 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
    npm run mcp
    ```
 
-5. **Start the LLM application, i.e. Claude**   
+5. **Start the LLM application, i.e. Claude desktop application**   
+- Claude desktop application can be downloaded here: https://claude.ai/download
+- Restart Claude if you make any change to the claude config json file 
+
+6. **Example prompts**   
+- "What tools are available"
+- "Ping MaxMSP at port 9500"
+- "Check received OSC messages"
 
 ## License
 
