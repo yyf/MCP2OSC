@@ -42,7 +42,7 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 - Restart Claude if you make any change to the claude config json file 
 - Open the example maxmsp patch and try the example prompts in Claude
 
-5. **Start the application (optional, needed for web dashboard)**
+5. **Start the server application (optional, needed for web dashboard)**
    ```bash
    npm run mcp
    ```
