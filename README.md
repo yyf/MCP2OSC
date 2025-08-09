@@ -1,6 +1,8 @@
 # MCP2OSC
 MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 
+![mcp2osc](https://github.com/user-attachments/assets/f966093a-ca15-4738-b815-f8141b1783f4)
+
 ### Installation
 
 1. **Clone the repository**
@@ -45,8 +47,8 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 - Restart Claude if you make any change to the claude config json file 
 
 6. **Example prompts**   
-- "What tools are available"
-- "Ping MaxMSP at port 9500"
+- "What MCP tools are available"
+- "Ping MaxMSP at port 9500 then check if there is any response"
 - "Check received OSC messages"
 
 ## License
