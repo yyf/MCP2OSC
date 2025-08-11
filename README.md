@@ -1,7 +1,7 @@
 # MCP2OSC
 MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 
-![mcp2osc](https://github.com/user-attachments/assets/24d0f826-ac67-4b2a-8da7-8d55b1923acb)
+![mcp2osc](https://github.com/user-attachments/assets/1c90133c-404b-4269-9515-7e4acba28453)
 
 ### Installation
 
