@@ -43,6 +43,12 @@ class EnhancedDashboardServer {
         this.app.use(express.json());
         this.app.use(express.static(path.join(__dirname, 'public')));
         
+        // Configuration
+        this.logConfig = {
+            maxMessages: parseInt(process.env.MAX_OSC_MESSAGES || '1000'),
+            logRotation: process.env.OSC_LOG_ROTATION === 'true' || process.env.OSC_LOG_ROTATION === 'daily'
+        };
+        
         // Initialize patterns file first
         this.initializePatternsFileIfNeeded();
         
@@ -50,6 +56,18 @@ class EnhancedDashboardServer {
         this.setupOSCReceiver();
         this.loadLogs();
         this.setupLogWatcher();
+    }
+
+    // Get current OSC log file name
+    getOSCLogFileName() {
+        if (this.logConfig.logRotation) {
+            const today = new Date();
+            const dateStr = today.getFullYear() + '-' + 
+                            String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(today.getDate()).padStart(2, '0');
+            return path.join(__dirname, 'logs', `osc-messages-${dateStr}.json`);
+        }
+        return path.join(__dirname, 'logs', 'osc-messages.json');
     }
 
     initializePatternsFileIfNeeded() {
