@@ -971,7 +971,33 @@ class MaxMSPCompatibleMCPServer {
         const sendPromises = processedMessages.map(async (msg, index) => {
           try {
             const oscMessage = this.createOSCMessage(msg.address, msg.values, msg.typeTags);
-            await this.sendOSCMessageToTarget(oscMessage, target, port, transport_protocol);
+            
+            // Use direct socket approach like other working OSC tools
+            const socket = createSocket({ 
+              type: 'udp4', 
+              reuseAddr: CONFIG.SOCKET_REUSE 
+            });
+            
+            try {
+              await new Promise((resolve, reject) => {
+                socket.send(oscMessage, port, target, (error) => {
+                  if (error) reject(error);
+                  else resolve();
+                });
+              });
+            } finally {
+              socket.close();
+            }
+            
+            // Log outbound message
+            await this.atomicWriteOSCMessage({
+              timestamp: new Date().toISOString(),
+              address: msg.address,
+              args: msg.values,
+              source: { address: target, port },
+              direction: 'outbound',
+              type: 'batch_message'
+            });
             
             results.push({
               index: msg.originalIndex,
@@ -1012,7 +1038,33 @@ class MaxMSPCompatibleMCPServer {
         for (const msg of processedMessages) {
           try {
             const oscMessage = this.createOSCMessage(msg.address, msg.values, msg.typeTags);
-            await this.sendOSCMessageToTarget(oscMessage, target, port, transport_protocol);
+            
+            // Use direct socket approach like other working OSC tools
+            const socket = createSocket({ 
+              type: 'udp4', 
+              reuseAddr: CONFIG.SOCKET_REUSE 
+            });
+            
+            try {
+              await new Promise((resolve, reject) => {
+                socket.send(oscMessage, port, target, (error) => {
+                  if (error) reject(error);
+                  else resolve();
+                });
+              });
+            } finally {
+              socket.close();
+            }
+            
+            // Log outbound message
+            await this.atomicWriteOSCMessage({
+              timestamp: new Date().toISOString(),
+              address: msg.address,
+              args: msg.values,
+              source: { address: target, port },
+              direction: 'outbound',
+              type: 'batch_message'
+            });
             
             results.push({
               index: msg.originalIndex,
