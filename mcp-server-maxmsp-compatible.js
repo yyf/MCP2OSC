@@ -42,6 +42,9 @@ const CONFIG = {
   PATTERNS_FILE: path.join(__dirname, 'extracted-osc-patterns.json'),
   LOG_FILE: path.join(__dirname, 'logs', 'mcp2osc.log'),
   OSC_MESSAGES_FILE: path.join(__dirname, 'logs', 'osc-messages.json'),
+  // Enhanced logging configuration
+  MAX_OSC_MESSAGES: parseInt(process.env.MAX_OSC_MESSAGES || '1000'),
+  OSC_LOG_ROTATION: process.env.OSC_LOG_ROTATION === 'true' || process.env.OSC_LOG_ROTATION === 'daily',
   // MaxMSP compatibility settings
   SOCKET_REUSE: true,
   GRACEFUL_MAXMSP: true,
@@ -71,6 +74,19 @@ class MaxMSPCompatibleMCPServer {
     this.setupToolHandlers();
     console.error('🚀 MaxMSP-Compatible MCP Server initialized');
     console.error(`🔧 OSC Configuration: ${CONFIG.OSC_HOST}:${CONFIG.OSC_SEND_PORT} (send) / ${CONFIG.OSC_HOST}:${CONFIG.OSC_RECEIVE_PORT} (receive)`);
+    console.error(`📊 OSC Logging: Max ${CONFIG.MAX_OSC_MESSAGES} messages, Rotation: ${CONFIG.OSC_LOG_ROTATION ? 'Daily' : 'Single file'}`);
+  }
+
+  // Add utility method for date-based file naming
+  getOSCLogFileName() {
+    if (CONFIG.OSC_LOG_ROTATION) {
+      const today = new Date();
+      const dateStr = today.getFullYear() + '-' + 
+                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(today.getDate()).padStart(2, '0');
+      return path.join(__dirname, 'logs', `osc-messages-${dateStr}.json`);
+    }
+    return CONFIG.OSC_MESSAGES_FILE;
   }
 
   async setupOSCReceiver() {
@@ -344,7 +360,7 @@ class MaxMSPCompatibleMCPServer {
   }
 
   async atomicWriteOSCMessage(message) {
-    const fileName = CONFIG.OSC_MESSAGES_FILE;
+    const fileName = this.getOSCLogFileName();
     
     // Prevent concurrent writes to same file
     if (this.fileWriteQueue.has(fileName)) {
@@ -378,9 +394,9 @@ class MaxMSPCompatibleMCPServer {
       // Add new message
       messages.push(newMessage);
       
-      // Keep only last 1000 messages
-      if (messages.length > 1000) {
-        messages = messages.slice(-1000);
+      // Keep only last N messages (configurable)
+      if (messages.length > CONFIG.MAX_OSC_MESSAGES) {
+        messages = messages.slice(-CONFIG.MAX_OSC_MESSAGES);
       }
       
       // Atomic write: temp file + rename
@@ -796,7 +812,8 @@ class MaxMSPCompatibleMCPServer {
     const { addressPattern, limit = 50 } = args;
     
     try {
-      const content = await fs.readFile(CONFIG.OSC_MESSAGES_FILE, 'utf8');
+      const fileName = this.getOSCLogFileName();
+      const content = await fs.readFile(fileName, 'utf8');
       let messages = JSON.parse(content);
       
       if (addressPattern) {
@@ -814,10 +831,13 @@ class MaxMSPCompatibleMCPServer {
         return `${msg.timestamp}: ${msg.address} ${direction} [${msg.args.join(', ')}] from ${source}`;
       }).join('\n');
       
+      const totalCount = messages.length;
+      const currentFile = path.basename(fileName);
+      
       return {
         content: [{
           type: 'text',
-          text: `📥 OSC Messages (${messages.length}):\n\n${result || 'No messages found matching criteria'}`
+          text: `📥 OSC Messages (${totalCount}):\nFile: ${currentFile}\nMax messages per file: ${CONFIG.MAX_OSC_MESSAGES}\nRotation: ${CONFIG.OSC_LOG_ROTATION ? 'Daily' : 'Single file'}\n\n${result || 'No messages found matching criteria'}`
         }]
       };
       
@@ -825,7 +845,7 @@ class MaxMSPCompatibleMCPServer {
       return {
         content: [{
           type: 'text',
-          text: `📥 No OSC messages available yet. Send some messages to see them here!`
+          text: `📥 No OSC messages available yet. Send some messages to see them here!\nConfig: Max ${CONFIG.MAX_OSC_MESSAGES} messages per file, Rotation: ${CONFIG.OSC_LOG_ROTATION ? 'Daily' : 'Single file'}`
         }]
       };
     }

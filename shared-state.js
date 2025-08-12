@@ -50,9 +50,10 @@ export class SharedState {
         
         this.data.oscMessages.push(message);
         
-        // Keep only last 1000 messages
-        if (this.data.oscMessages.length > 1000) {
-            this.data.oscMessages = this.data.oscMessages.slice(-1000);
+        // Keep only last N messages (configurable)
+        const maxMessages = parseInt(process.env.MAX_OSC_MESSAGES || '1000');
+        if (this.data.oscMessages.length > maxMessages) {
+            this.data.oscMessages = this.data.oscMessages.slice(-maxMessages);
         }
         
         console.log(`[SHARED STATE] OSC stored: ${address} from ${source}:${port}`);

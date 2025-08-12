@@ -10,7 +10,27 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const STORAGE_FILE = path.join(__dirname, 'logs', 'osc-messages.json');
+
+// Configuration for shared storage
+const STORAGE_CONFIG = {
+    MAX_MESSAGES: parseInt(process.env.MAX_OSC_MESSAGES || '1000'),
+    LOG_ROTATION: process.env.OSC_LOG_ROTATION === 'true' || process.env.OSC_LOG_ROTATION === 'daily',
+    LOGS_DIR: path.join(__dirname, 'logs')
+};
+
+// Get storage file name with date rotation support
+function getStorageFileName() {
+    if (STORAGE_CONFIG.LOG_ROTATION) {
+        const today = new Date();
+        const dateStr = today.getFullYear() + '-' + 
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(today.getDate()).padStart(2, '0');
+        return path.join(STORAGE_CONFIG.LOGS_DIR, `osc-messages-${dateStr}.json`);
+    }
+    return path.join(STORAGE_CONFIG.LOGS_DIR, 'osc-messages.json');
+}
+
+const STORAGE_FILE = getStorageFileName();
 
 // Import command queue for auto-queuing
 let commandQueue = null;
@@ -95,9 +115,9 @@ export function addOSCMessage(address, args, source, port, direction = 'inbound'
     const messages = loadMessages();
     messages.push(message);
     
-    // Keep only last 1000 messages
-    if (messages.length > 1000) {
-        messages.splice(0, messages.length - 1000);
+    // Keep only last N messages (configurable)
+    if (messages.length > STORAGE_CONFIG.MAX_MESSAGES) {
+        messages.splice(0, messages.length - STORAGE_CONFIG.MAX_MESSAGES);
     }
     
     // Save back to file
@@ -114,8 +134,9 @@ export function addOSCMessage(address, args, source, port, direction = 'inbound'
         }
     }
     
+    const currentFile = path.basename(getStorageFileName());
     console.log(`[SHARED STORAGE FILE] OSC stored: ${address} ${direction} ${source}:${port} (total: ${messages.length})`);
-    console.log(`[SHARED STORAGE FILE] Absolute path: ${STORAGE_FILE}`);
+    console.log(`[SHARED STORAGE FILE] File: ${currentFile}, Max: ${STORAGE_CONFIG.MAX_MESSAGES}, Rotation: ${STORAGE_CONFIG.LOG_ROTATION ? 'Daily' : 'Single'}`);
     
     return message;
 }

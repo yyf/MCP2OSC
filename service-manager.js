@@ -23,6 +23,9 @@ class ServiceManager {
       OSC_HOST: process.env.OSC_HOST || '127.0.0.1',
       DASHBOARD_PORT: parseInt(process.env.DASHBOARD_PORT || '3001'),
       MCP_MODE: process.env.MCP_MODE || 'standalone',
+      // New logging configuration
+      MAX_OSC_MESSAGES: parseInt(process.env.MAX_OSC_MESSAGES || '1000'),
+      OSC_LOG_ROTATION: process.env.OSC_LOG_ROTATION === 'true' || process.env.OSC_LOG_ROTATION === 'daily',
       LOG_DIR: join(__dirname, 'logs'),
       PATTERNS_FILE: join(__dirname, 'extracted-osc-patterns.json')
     };
@@ -34,6 +37,8 @@ class ServiceManager {
     console.log(`   OSC_SEND_PORT: ${this.config.OSC_SEND_PORT}`);
     console.log(`   OSC_RECEIVE_PORT: ${this.config.OSC_RECEIVE_PORT}`);
     console.log(`   DASHBOARD_PORT: ${this.config.DASHBOARD_PORT}`);
+    console.log(`   MAX_OSC_MESSAGES: ${this.config.MAX_OSC_MESSAGES}`);
+    console.log(`   OSC_LOG_ROTATION: ${this.config.OSC_LOG_ROTATION ? 'Daily' : 'Single file'}`);
     console.log('');
   }
 
