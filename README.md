@@ -51,7 +51,7 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 
 6. **Example prompts**   
 - "What MCP tools are available"
-- "Ping MaxMSP (PureData or SuperCollider as open-source alternatives) at port 9500 then check if there is any response"
+- "Ping MaxMSP (PureData or SuperCollider as free alternatives) at port 9500 then check if there is any response"
 - "Check received OSC messages"
 
 ## License
