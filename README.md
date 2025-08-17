@@ -45,7 +45,7 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 4. **Start the LLM application, i.e. Claude desktop application**   
 - Claude desktop application can be downloaded here: https://claude.ai/download
 - Restart Claude if you make any change to the claude config json file 
-- Open the example maxmsp patch and try the example prompts in Claude
+- Open the example MaxMSP or PureData patch and try the example prompts in Claude
 
 5. **Start the server application (optional, needed for web dashboard)**
    ```bash
