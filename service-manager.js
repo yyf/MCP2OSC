@@ -334,9 +334,9 @@ class ServiceManager {
   }
 
   async startMCPServer() {
-    console.log('🔧 Starting MaxMSP-compatible MCP server...');
+    console.log('🔧 Starting the MCP server...');
     
-    const mcpProcess = spawn('node', ['mcp-server-maxmsp-compatible.js'], {
+    const mcpProcess = spawn('node', ['mcp-server.js'], {
       cwd: __dirname,
       env: { 
         ...process.env, 

@@ -47,15 +47,15 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 - Restart Claude if you make any change to the claude config json file 
 - Open the example MaxMSP or PureData patch and try the example prompts in Claude
 
-5. **Start the server application (optional, needed for web dashboard)**
+5. **Example prompts**   
+- "What MCP tools are available"
+- "Ping MaxMSP at port 9500 then check if there is any response"
+- "Check received OSC messages"
+
+6. **Optionally, start the web dashboard server for debugging**
    ```bash
    npm run mcp
    ```
-
-6. **Example prompts**   
-- "What MCP tools are available"
-- "Ping MaxMSP (PureData or SuperCollider as free alternatives) at port 9500 then check if there is any response"
-- "Check received OSC messages"
 
 ## License
 MIT License - see LICENSE file for details
