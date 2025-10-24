@@ -73,10 +73,6 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    npm run mcp
    ```
 
-## License
-MIT License - see LICENSE file for details
-
-
 ### Citation
 ```
 @misc{fan2025mcp2oscparametriccontrolnatural,
