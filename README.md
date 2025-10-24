@@ -1,7 +1,24 @@
-# MCP2OSC
-MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
+<div align="center">
+<h1>MCP2OSC</h1>
+<h3>MCP2OSC: Parametric Control by Natural Language</h3>
 
+[Yuan-Yi Fan](https://yuanyifan.com)<sup>1</sup>  
+
+<sup>1</sup> Independent Researcher
+
+<p align="center">
 ![mcp2osc](https://github.com/user-attachments/assets/1c90133c-404b-4269-9515-7e4acba28453)
+</p>
+
+</div>
+
+[![arXiv](https://img.shields.io/badge/arXiv-2502.12524-b31b1b.svg)](https://arxiv.org/abs/2508.10414) 
+
+### Updates
+- 2025/08/14: [arXiv version](https://arxiv.org/abs/2508.10414) is now public. 
+
+### Abstract 
+Text prompts enable intuitive content creation but may fall short in achieving high precision for intricate tasks; knob or slider controls offer precise adjustments at the cost of increased complexity. To address the gap between knobs and prompts, a new MCP (Model Context Protocol) server and a unique set of prompt design criteria are presented to enable exploring parametric OSC (OpenSoundControl) control by natural language prompts. Demonstrated by 14 practical QA examples with best practices and the generalized prompt templates, this study finds Claude integrated with the MCP2OSC server effective in generating OSC messages by natural language, interpreting, searching, and visualizing OSC messages, validating and debugging OSC messages, and managing OSC address patterns. MCP2OSC enhances human-machine collaboration by leveraging LLM (Large Language Model) to handle intricate OSC development tasks, and by empowering human creativity with an intuitive language interface featuring flexible precision controls: a prompt-based OSC tool. This study provides a novel perspective on the creative MCP application at the network protocol level by utilizing LLM's strength in directly processing and generating human-readable OSC messages. The results suggest its potential for a LLM-based universal control mechanism for multimedia devices.
 
 ### Demo video
 [![Watch the video](https://img.youtube.com/vi/O0VdbRiggfg/0.jpg)](https://www.youtube.com/watch?v=O0VdbRiggfg)
@@ -59,3 +76,17 @@ MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)
 
 ## License
 MIT License - see LICENSE file for details
+
+
+### Citation
+```
+@misc{fan2025mcp2oscparametriccontrolnatural,
+      title={MCP2OSC: Parametric Control by Natural Language}, 
+      author={Yuan-Yi Fan},
+      year={2025},
+      eprint={2508.10414},
+      archivePrefix={arXiv},
+      primaryClass={cs.HC},
+      url={https://arxiv.org/abs/2508.10414}, 
+}
+```
