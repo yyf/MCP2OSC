@@ -7,7 +7,7 @@
 <sup>1</sup> Independent Researcher
 
 <p align="center">
-![mcp2osc](https://github.com/user-attachments/assets/1c90133c-404b-4269-9515-7e4acba28453)
+![mcp2osc](https://github.com/user-attachments/assets/fb3cf864-d521-425a-a3a5-94cb924978a1)
 </p>
 
 </div>
