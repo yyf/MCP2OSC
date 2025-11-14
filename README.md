@@ -20,15 +20,19 @@
 
 <br>
 
-### Abstract 
-Text prompts enable intuitive content creation but may fall short in achieving high precision for intricate tasks; knob or slider controls offer precise adjustments at the cost of increased complexity. To address the gap between knobs and prompts, a new MCP (Model Context Protocol) server and a unique set of prompt design criteria are presented to enable exploring parametric OSC (OpenSoundControl) control by natural language prompts. Demonstrated by 15 practical QA examples with best practices and the generalized prompt templates, this study finds Claude integrated with the MCP2OSC server effective in generating OSC messages by natural language, interpreting, searching, and visualizing OSC messages, validating and debugging OSC messages, and managing OSC address patterns. MCP2OSC enhances human-machine collaboration by harnessing a LLM (Large Language Model) to handle intricate OSC development tasks. It empowers human creativity with an intuitive language interface featuring flexible precision controls: a prompt-based OSC tool. This study provides a novel perspective on the creative MCP application at the network protocol level by utilizing LLM's strength in directly processing and generating human-readable OSC messages. The results suggest its potential for a LLM-based universal control mechanism for multimedia devices.
-
 ### Updates
 - 2025/11/14: [OpenReview version](https://openreview.net/forum?id=XLdFf7Zarw) is now available. 
 - 2025/08/14: [arXiv version](https://arxiv.org/abs/2508.10414) is now public. 
 
+### Abstract 
+Text prompts enable intuitive content creation but may fall short in achieving high precision for intricate tasks; knob or slider controls offer precise adjustments at the cost of increased complexity. To address the gap between knobs and prompts, a new MCP (Model Context Protocol) server and a unique set of prompt design criteria are presented to enable exploring parametric OSC (OpenSoundControl) control by natural language prompts. Demonstrated by 15 practical QA examples with best practices and the generalized prompt templates, this study finds Claude integrated with the MCP2OSC server effective in generating OSC messages by natural language, interpreting, searching, and visualizing OSC messages, validating and debugging OSC messages, and managing OSC address patterns. MCP2OSC enhances human-machine collaboration by harnessing a LLM (Large Language Model) to handle intricate OSC development tasks. It empowers human creativity with an intuitive language interface featuring flexible precision controls: a prompt-based OSC tool. This study provides a novel perspective on the creative MCP application at the network protocol level by utilizing LLM's strength in directly processing and generating human-readable OSC messages. The results suggest its potential for a LLM-based universal control mechanism for multimedia devices.
+
 ### Demo video
 [![Watch the video](https://img.youtube.com/vi/O0VdbRiggfg/0.jpg)](https://www.youtube.com/watch?v=O0VdbRiggfg)
+
+<div style="position: relative; padding-bottom: 56.25%; height: 0;">
+<iframe width="560" height="315" src="https://www.youtube.com/embed/O0VdbRiggfg?si=S8ITQZJVes5-WnRS" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+</div>
 
 ### Installation
 
