@@ -8,8 +8,9 @@
 
 </div>
 
+<br>
+
 ![mcp2osc](https://github.com/user-attachments/assets/fb3cf864-d521-425a-a3a5-94cb924978a1)
-<p align="center">MCP2OSC is a MCP (Model Context Protocol) server for OSC (OpenSoundControl)</p>
 
 <br>
 
