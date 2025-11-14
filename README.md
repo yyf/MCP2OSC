@@ -1,6 +1,6 @@
 <div align="center">
 <h1>MCP2OSC</h1>
-<h3>MCP2OSC: Parametric Control by Natural Language</h3>
+<h3>Parametric Control by Natural Language</h3>
 
 [Yuan-Yi Fan](https://yuanyifan.com)<sup>1</sup>  
 
@@ -17,8 +17,6 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2506.05573-b31b1b.svg?logo=arXiv)](https://arxiv.org/abs/2508.10414)
 [![OpenReview](https://img.shields.io/badge/NeurIPS-2025-blue)](https://openreview.net/forum?id=XLdFf7Zarw)
 [<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/watch?v=O0VdbRiggfg)
-
-<br>
 
 ### Updates
 - 2025/11/14: [OpenReview version](https://openreview.net/forum?id=XLdFf7Zarw) is now available. 
