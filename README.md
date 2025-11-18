@@ -81,13 +81,12 @@ Text prompts enable intuitive content creation but may fall short in achieving h
 
 ### Citation
 ```
-@misc{fan2025mcp2oscparametriccontrolnatural,
-      title={MCP2OSC: Parametric Control by Natural Language}, 
-      author={Yuan-Yi Fan},
-      year={2025},
-      eprint={2508.10414},
-      archivePrefix={arXiv},
-      primaryClass={cs.HC},
-      url={https://arxiv.org/abs/2508.10414}, 
+@inproceedings{
+fan2025mcposc,
+title={{MCP}2{OSC}: Parametric Control by Natural Language},
+author={Yuan-Yi Fan},
+booktitle={The Thirty-ninth Annual Conference on Neural Information Processing Systems Creative AI Track: Humanity},
+year={2025},
+url={https://openreview.net/forum?id=XLdFf7Zarw}
 }
 ```
