@@ -16,7 +16,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2506.05573-b31b1b.svg)](https://arxiv.org/abs/2508.10414)
 [![OpenReview](https://img.shields.io/badge/NeurIPS-2025-blue)](https://openreview.net/forum?id=XLdFf7Zarw)
-[<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/watch?v=O0VdbRiggfg)
+[<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/@MCP2OSC)
 
 ### Updates
 - 2025/11/14: [OpenReview version](https://openreview.net/forum?id=XLdFf7Zarw) is now available. 
