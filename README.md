@@ -10,7 +10,7 @@
 
 <br>
 
-![mcp2osc_matrix](https://github.com/user-attachments/assets/3c8a7d11-dfed-49fb-a9fa-f65f6a3a782b)
+![mcp2osc_matrix_rotate](https://github.com/user-attachments/assets/29689f81-e540-44cf-b3cb-c1ce35a9b71f)
 
 <br>
 
