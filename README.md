@@ -27,6 +27,8 @@ Text prompts enable intuitive content creation but may fall short in achieving h
 
 ### Demo video
 [![Watch the video](https://img.youtube.com/vi/LquHSm8Lquo/sddefault.jpg)](https://www.youtube.com/watch?v=LquHSm8Lquo)
+[![Watch the video](https://img.youtube.com/vi/qQ23gsT5TvE/sddefault.jpg)](https://www.youtube.com/watch?v=qQ23gsT5TvE)
+[![Watch the video](https://img.youtube.com/vi/O0VdbRiggfg/sddefault.jpg)](https://www.youtube.com/watch?v=O0VdbRiggfg)
 
 ### Installation
 
