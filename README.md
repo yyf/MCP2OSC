@@ -82,11 +82,6 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    npm run mcp
    ```
 
-### ❤️ Made with MCP2OSC 🎛️ - a selection of projects exporing the possibilities of MCP2OSC
-| Project | Author | Description |
-|---|---|---|
-| [coralline](https://github.com/olivelogs/coralline) | [olivelogs](https://github.com/olivelogs) | Coralline gives Claude the ability to make music in real-time with SuperCollider, effectively translating dialogue into music. |
-
 ### Citation
 ```
 @inproceedings{
@@ -98,3 +93,8 @@ year={2025},
 url={https://openreview.net/forum?id=XLdFf7Zarw}
 }
 ```
+
+### ❤️ Made with MCP2OSC 🎛️ - a selection of projects exporing the possibilities of MCP2OSC
+| Project | Author | Description |
+|---|---|---|
+| [coralline](https://github.com/olivelogs/coralline) | [olivelogs](https://github.com/olivelogs) | Coralline gives Claude the ability to make music in real-time with SuperCollider, effectively translating dialogue into music. |
