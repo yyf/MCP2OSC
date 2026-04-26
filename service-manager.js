@@ -9,8 +9,9 @@ import { spawn } from 'child_process';
 import { existsSync, mkdirSync } from 'fs';
 import { writeFile, readFile, appendFile } from 'fs/promises';
 import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { createSocket } from 'dgram';
+import net from 'net';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -46,10 +47,12 @@ class ServiceManager {
     console.log('🚀 MCP2OSC Service Manager Starting...');
     console.log('=====================================');
     
-    // Show environment source
-    const envSource = process.env.OSC_SEND_PORT !== '7500' || process.env.OSC_RECEIVE_PORT !== '7501' ? 
-      'environment variables' : 'default values';
-    console.log(`📋 Using ${envSource} for OSC configuration`);
+    const oscFromEnv =
+      (process.env.OSC_SEND_PORT != null && String(process.env.OSC_SEND_PORT).length > 0) ||
+      (process.env.OSC_RECEIVE_PORT != null && String(process.env.OSC_RECEIVE_PORT).length > 0);
+    console.log(
+      `📋 OSC ports: ${oscFromEnv ? 'from environment' : `defaults (${this.config.OSC_SEND_PORT}/${this.config.OSC_RECEIVE_PORT})`}`
+    );
 
     try {
       await this.initializeEnvironment();
@@ -57,8 +60,7 @@ class ServiceManager {
       await this.initializeLogging();
       await this.startServices();
       this.setupGracefulShutdown();
-      
-      console.log('\n✅ All services running successfully!');
+
       this.printServiceStatus();
       
     } catch (error) {
@@ -118,32 +120,43 @@ class ServiceManager {
 
   async checkPorts() {
     console.log('🔍 Checking port availability...');
-    
+
+    const dashboardOscPort = this.config.OSC_RECEIVE_PORT + 10;
     const portsToCheck = [
-      { port: this.config.OSC_SEND_PORT, name: 'OSC Send' },
-      { port: this.config.OSC_RECEIVE_PORT, name: 'OSC Receive' },
-      { port: this.config.DASHBOARD_PORT, name: 'Dashboard' }
+      { port: this.config.OSC_SEND_PORT, name: 'OSC Send', protocol: 'udp' },
+      { port: this.config.OSC_RECEIVE_PORT, name: 'OSC Receive', protocol: 'udp' },
+      { port: dashboardOscPort, name: 'Dashboard OSC listener', protocol: 'udp' },
+      { port: this.config.DASHBOARD_PORT, name: 'Dashboard HTTP (TCP)', protocol: 'tcp' }
     ];
 
-    for (const { port, name } of portsToCheck) {
-      if (await this.isPortInUse(port)) {
-        console.log(`⚠️  Port ${port} (${name}) is in use - checking for MaxMSP...`);
-        
-        const isMaxMSP = await this.checkIfMaxMSPOnPort(port);
+    for (const { port, name, protocol } of portsToCheck) {
+      const inUse =
+        protocol === 'tcp' ? await this.isTcpPortInUse(port) : await this.isUdpPortInUse(port);
+
+      if (inUse) {
+        const skipMaxCheck = protocol === 'tcp' || name.includes('Dashboard');
+        if (!skipMaxCheck) {
+          console.log(`⚠️  Port ${port} (${name}) is in use - checking for MaxMSP...`);
+        } else {
+          console.log(`⚠️  Port ${port} (${name}) is in use`);
+        }
+
+        const isMaxMSP = skipMaxCheck ? false : await this.checkIfMaxMSPOnPort(port);
         if (isMaxMSP) {
           console.log(`🎵 MaxMSP detected on port ${port} - allowing shared use`);
           console.log(`✅ Port ${port} (${name}) - MaxMSP compatible mode`);
-          continue; // Don't kill MaxMSP, allow shared use
+          continue;
         }
-        
-        console.log(`🛑 Non-MaxMSP process on port ${port} - attempting to free it`);
+
+        console.log(`🛑 Attempting to free port ${port} (${name})`);
         await this.killProcessOnPort(port);
-        
-        // Wait and check again
+
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        if (await this.isPortInUse(port)) {
-          const stillMaxMSP = await this.checkIfMaxMSPOnPort(port);
+
+        const stillInUse =
+          protocol === 'tcp' ? await this.isTcpPortInUse(port) : await this.isUdpPortInUse(port);
+        if (stillInUse) {
+          const stillMaxMSP = skipMaxCheck ? false : await this.checkIfMaxMSPOnPort(port);
           if (stillMaxMSP) {
             console.log(`✅ Port ${port} (${name}) - MaxMSP compatible mode`);
           } else {
@@ -212,18 +225,31 @@ class ServiceManager {
     }
   }
 
-  async isPortInUse(port) {
+  async isUdpPortInUse(port) {
     return new Promise((resolve) => {
       const socket = createSocket('udp4');
       
       socket.on('error', () => {
-        resolve(true); // Port in use
+        resolve(true);
       });
       
       socket.bind(port, () => {
         socket.close();
-        resolve(false); // Port available
+        resolve(false);
       });
+    });
+  }
+
+  async isTcpPortInUse(port) {
+    return new Promise((resolve) => {
+      const server = net.createServer();
+      server.once('error', (err) => {
+        resolve(err.code === 'EADDRINUSE');
+      });
+      server.once('listening', () => {
+        server.close(() => resolve(false));
+      });
+      server.listen(port, '0.0.0.0');
     });
   }
 
@@ -295,7 +321,7 @@ class ServiceManager {
       timestamp: new Date().toISOString(),
       address: '/system/startup',
       args: ['service_manager', 'initialized'],
-      source: { address: '127.0.0.1', port: 7500 },
+      source: { address: this.config.OSC_HOST, port: this.config.OSC_SEND_PORT },
       raw: '2f73797374656d2f737461727475700000'
     };
     
@@ -365,6 +391,7 @@ class ServiceManager {
     });
 
     mcpProcess.on('exit', (code) => {
+      this.services.delete('mcp');
       if (!this.isShuttingDown) {
         console.error(`❌ MCP server exited with code ${code}`);
         this.logActivity(`MCP server exited with code ${code}`);
@@ -410,6 +437,7 @@ class ServiceManager {
     });
 
     dashboardProcess.on('exit', (code) => {
+      this.services.delete('dashboard');
       if (!this.isShuttingDown) {
         console.error(`❌ Dashboard server exited with code ${code}`);
         this.logActivity(`Dashboard server exited with code ${code}`);
@@ -417,7 +445,18 @@ class ServiceManager {
     });
 
     this.services.set('dashboard', dashboardProcess);
-    console.log('✅ Dashboard server started');
+    console.log('⏳ Waiting for dashboard to bind ports...');
+    await new Promise((resolve) => setTimeout(resolve, 2800));
+    if (dashboardProcess.exitCode !== null) {
+      throw new Error(
+        `Dashboard failed to start (exit ${dashboardProcess.exitCode}). Check TCP ${this.config.DASHBOARD_PORT} and UDP ${this.config.OSC_RECEIVE_PORT + 10} are free.`
+      );
+    }
+    console.log('✅ Dashboard server running');
+  }
+
+  isChildRunning(proc) {
+    return proc && proc.exitCode === null && proc.signalCode == null;
   }
 
   async logActivity(message) {
@@ -431,12 +470,24 @@ class ServiceManager {
   }
 
   printServiceStatus() {
+    const mcp = this.services.get('mcp');
+    const dash = this.services.get('dashboard');
+    const mcpExpected = this.config.MCP_MODE === 'standalone';
+    const mcpOk = !mcpExpected || this.isChildRunning(mcp);
+    const dashOk = this.isChildRunning(dash);
+    const allOk = mcpOk && dashOk;
+
+    console.log(`\n${allOk ? '✅ All services running.' : '⚠️  Some services are not running.'}`);
     console.log('\n📋 Service Status:');
     console.log('==================');
-    console.log(`🔧 MCP Server: ${this.services.has('mcp') ? '✅ Running' : '❌ Stopped'} (Standalone mode)`);
-    console.log(`📊 Dashboard: ${this.services.has('dashboard') ? '✅ Running' : '❌ Stopped'} (http://localhost:${this.config.DASHBOARD_PORT})`);
+    const mcpLabel = !mcpExpected
+      ? '⏭️  Skipped (set MCP_MODE=standalone to spawn MCP here)'
+      : `${this.isChildRunning(mcp) ? '✅ Running' : '❌ Stopped'} (standalone)`;
+    console.log(`🔧 MCP Server: ${mcpLabel}`);
+    console.log(`📊 Dashboard: ${dashOk ? '✅ Running' : '❌ Stopped'} (http://localhost:${this.config.DASHBOARD_PORT})`);
     console.log(`📡 OSC Send Port: ${this.config.OSC_SEND_PORT}`);
-    console.log(`📥 OSC Receive Port: ${this.config.OSC_RECEIVE_PORT}`);
+    console.log(`📥 MCP OSC Receive Port: ${this.config.OSC_RECEIVE_PORT}`);
+    console.log(`📥 Dashboard OSC listener: ${this.config.OSC_RECEIVE_PORT + 10} (avoids UDP bind conflict with MCP)`);
     console.log(`📁 Logs Directory: ${this.config.LOG_DIR}`);
     console.log(`📝 Patterns File: ${this.config.PATTERNS_FILE}`);
     console.log('\n🎯 Usage:');
@@ -499,8 +550,11 @@ class ServiceManager {
   }
 }
 
-// Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run if executed directly (not when imported)
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
   const manager = new ServiceManager();
   manager.start().catch(console.error);
 }

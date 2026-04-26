@@ -14,7 +14,7 @@
 
 <br>
 
-[![arXiv](https://img.shields.io/badge/arXiv-2506.05573-b31b1b.svg)](https://arxiv.org/abs/2508.10414)
+[![arXiv](https://img.shields.io/badge/arXiv-2508.10414-b31b1b.svg)](https://arxiv.org/abs/2508.10414)
 [![OpenReview](https://img.shields.io/badge/NeurIPS-2025-blue)](https://openreview.net/forum?id=XLdFf7Zarw)
 [<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/@MCP2OSC)
 
@@ -35,7 +35,7 @@ Text prompts enable intuitive content creation but may fall short in achieving h
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/yyf/MCP2OSC.git
    cd MCP2OSC
    ```
 
@@ -45,7 +45,10 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    ```
 
 3. **Configure your LLM application**
-   Add to your Claude Desktop MCP configuration file, usually under "~/Library/Application\ Support/Claude" on macOS. Make sure you update paths accordingly. 
+   Add to your Claude Desktop MCP configuration file — for example:
+   - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`   
+
+   Use the **absolute path** to `mcp-server.js` on your machine.
    ```json
    {
       "mcpServers": {
@@ -77,9 +80,9 @@ Text prompts enable intuitive content creation but may fall short in achieving h
 - "Ping MaxMSP at port 9500 then check if there is any response"
 - "Check received OSC messages"
 
-6. **Optionally, start the web dashboard server for debugging**
+6. **Optional: start MCP + dashboard**
    ```bash
-   npm run mcp
+   npm start
    ```
 
 ### Citation
@@ -94,7 +97,7 @@ url={https://openreview.net/forum?id=XLdFf7Zarw}
 }
 ```
 
-### ❤️ Made with MCP2OSC 🎛️ - a selection of projects exporing the possibilities of MCP2OSC
+### ❤️ Made with MCP2OSC 🎛️ - a selection of projects exploring the possibilities of MCP2OSC
 | Project | Author | Description |
 |---|---|---|
 | [coralline](https://github.com/olivelogs/coralline) | [olivelogs](https://github.com/olivelogs) | Coralline gives Claude the ability to make music in real-time with SuperCollider, effectively translating dialogue into music. |

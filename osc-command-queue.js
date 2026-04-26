@@ -2,7 +2,7 @@
  * OSC Command Queue System - Plan 2: Scheduling & Automation
  */
 
-class OSCCommandQueue {
+export class OSCCommandQueue {
   constructor() {
     this.queue = [];
     this.scheduledCommands = new Map(); // timestamp -> commands
@@ -141,3 +141,5 @@ class OSCCommandQueue {
     });
   }
 }
+
+export const commandQueue = new OSCCommandQueue();

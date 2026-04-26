@@ -53,12 +53,12 @@ async function install() {
 
         console.log('\n✅ Installation complete!');
         console.log('\n🚀 Quick start:');
-        console.log('npm start');
-        console.log('\n📖 Usage:');
-        console.log('1. Visit http://localhost:3001/upload');
-        console.log('2. Upload user manual files (PDF, Word, TXT, Excel)');
-        console.log('3. Ask Claude: "Get extracted patterns summary"');
-        console.log('4. Ask Claude: "Search extracted patterns for volume control"');
+        console.log('- MCP + dashboard: npm start   (or: npm run mcp)');
+        console.log('- Claude Desktop only: point MCP config at node mcp-server.js (see README)');
+        console.log('\n📖 Optional pattern upload (dashboard):');
+        console.log('1. Start services, then visit http://localhost:3001/upload');
+        console.log('2. Upload manuals (PDF, Word, TXT, Excel) if using extraction features');
+        console.log('3. Ask your LLM for pattern summary / search as needed');
 
     } catch (error) {
         console.error('❌ Installation failed:', error.message);
