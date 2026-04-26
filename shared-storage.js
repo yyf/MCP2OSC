@@ -35,7 +35,7 @@ const STORAGE_FILE = getStorageFileName();
 // Import command queue for auto-queuing
 let commandQueue = null;
 try {
-    const { commandQueue: cq } = await import('./command-queue.js');
+    const { commandQueue: cq } = await import('./osc-command-queue.js');
     commandQueue = cq;
 } catch (error) {
     console.warn('[SHARED STORAGE] Command queue not available:', error.message);

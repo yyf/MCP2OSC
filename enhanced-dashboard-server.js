@@ -8,7 +8,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import { createSocket } from 'dgram';
 import { createServer } from 'http';
 import { addOSCMessage, getOSCMessages } from './shared-storage.js';
@@ -17,9 +17,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Configuration
 const CONFIG = {
-    WEB_PORT: parseInt(process.env.WEB_PORT || '3001'),
-    OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '7500'),
-    OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '7502'), // Different port to avoid conflict
+    WEB_PORT: parseInt(process.env.WEB_PORT || process.env.DASHBOARD_PORT || '3001'),
+    // Defaults match README / example patches. service-manager offsets receive port by +10.
+    OSC_SEND_PORT: parseInt(process.env.OSC_SEND_PORT || '9500'),
+    OSC_RECEIVE_PORT: parseInt(process.env.OSC_RECEIVE_PORT || '9501'),
     OSC_HOST: process.env.OSC_HOST || process.env.DEFAULT_OSC_HOST || '127.0.0.1',
     LOG_FILE: path.join(__dirname, 'logs', 'mcp2osc.log')
 };
@@ -1193,7 +1194,10 @@ class EnhancedDashboardServer {
             });
             
             oscReceiveSocket.on('error', (error) => {
-                console.warn('OSC receive socket error:', error.message);
+                console.error('OSC receive socket error:', error.message);
+                if (error.code === 'EADDRINUSE') {
+                    process.exit(1);
+                }
             });
             
             // Bind to receive OSC messages
@@ -1383,18 +1387,22 @@ class EnhancedDashboardServer {
         return Buffer.concat([buffer, Buffer.alloc(padding)]);
     }
 
-    start(port = 3001) {
-        this.app.listen(port, () => {
+    start(port = CONFIG.WEB_PORT) {
+        const server = this.app.listen(port, () => {
             console.log(`🌐 Enhanced Dashboard Server running on http://localhost:${port}`);
             console.log(` OSC receiver listening on ${CONFIG.OSC_HOST}:${CONFIG.OSC_RECEIVE_PORT}`);
             console.log(`📡 OSC output: ${CONFIG.OSC_HOST}:${CONFIG.OSC_SEND_PORT}`);
             console.log(`🤖 Claude can add patterns via MCP tools`);
         });
+        server.on('error', (err) => {
+            console.error(`Dashboard HTTP error on port ${port}:`, err.message);
+            process.exit(1);
+        });
     }
 }
 
 // If this file is run directly, start the server
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
     const server = new EnhancedDashboardServer();
-    server.start(3001);
+    server.start(CONFIG.WEB_PORT);
 }

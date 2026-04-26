@@ -3,21 +3,17 @@
   "version": "1.0.0",
   "description": "Model Context Protocol to Open Sound Control Bridge",
   "type": "module",
-  "main": "mcp-server-maxmsp-compatible.js",
+  "main": "mcp-server.js",
   "scripts": {
-    "start": "node start.js",
+    "start": "node service-manager.js",
     "mcp": "node service-manager.js",
-    "mcp-direct": "node mcp-server-maxmsp-compatible.js",
-    "mcp-maxmsp": "node mcp-server-maxmsp-compatible.js",
+    "mcp-stdio": "node mcp-server.js",
     "dashboard-only": "node enhanced-dashboard-server.js",
+    "verify": "node verify-startup.js",
     "test-config": "node -e \"console.log('OSC Config:', {host: process.env.OSC_HOST || '127.0.0.1', send: process.env.OSC_SEND_PORT || '9500', receive: process.env.OSC_RECEIVE_PORT || '9501'})\"",
-    "test-maxmsp": "node test-maxmsp-integration.js",
     "test-websocket": "node test-websocket-osc.js",
     "test-batch": "node test-batch-osc.js",
-    "test-bundle": "node test-osc-bundle.js",
-    "health-check": "node system-health-check.js",
-    "production-readiness": "node production-readiness.js",
-    "analyze-system": "node system-analysis-report.js"
+    "test-bundle": "node test-osc-bundle.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
