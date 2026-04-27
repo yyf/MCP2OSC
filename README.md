@@ -84,6 +84,8 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    ```bash
    npm start
    ```
+7. **Creative application examples**
+- The examples folder include MaxMSP, PureData, and SuperCollider patches
 
 ### Citation
 ```
