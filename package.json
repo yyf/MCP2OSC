@@ -16,9 +16,10 @@
     "test-bundle": "node test-osc-bundle.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "^4.18.2",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "zod": "^4.6.7"
   },
   "keywords": [
     "osc",

@@ -48,31 +48,32 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    Add to your Claude Desktop MCP configuration file — for example:
    - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`   
 
-   Use the **absolute path** to `mcp-server.js` on your machine.
+   Use **absolute paths** for both `node` (`which node`) and `mcp-server.js`. Claude Desktop’s PATH can be thin, so a bare `"command": "node"` sometimes fails.
    ```json
    {
       "mcpServers": {
          "mcp2osc": {
-            "command": "node",
+            "command": "/opt/homebrew/bin/node",
             "args": ["/Users/.../MCP2OSC/mcp-server.js"],
             "cwd": "/Users/.../MCP2OSC",
             "env": {
-            "OSC_HOST": "127.0.0.1",
-            "OSC_SEND_PORT": "9500",
-            "OSC_RECEIVE_PORT": "9501", 
-            "WEBSOCKET_PORT": "8765",
-            "WEBSOCKET_OSC_PORT": "9500",
-            "MAX_OSC_MESSAGES": "2000",
-            "OSC_LOG_ROTATION": "true"
+               "OSC_HOST": "127.0.0.1",
+               "OSC_SEND_PORT": "9500",
+               "OSC_RECEIVE_PORT": "9501",
+               "WEBSOCKET_PORT": "8765",
+               "WEBSOCKET_OSC_PORT": "9500",
+               "MAX_OSC_MESSAGES": "2000",
+               "OSC_LOG_ROTATION": "true"
             }
          }
       }
    }
    ```
+   On Intel Macs or Linux, replace `command` with your `which node` path (e.g. `/usr/local/bin/node`). If tools do not appear after restart, check `~/Library/Logs/Claude/` (`mcp*.log`).
 
 4. **Start the LLM application, i.e. Claude desktop application**   
 - Claude desktop application can be downloaded here: https://claude.ai/download
-- Restart Claude if you make any change to the claude config json file 
+- Fully quit and restart Claude if you make any change to the Claude config JSON file 
 - Open the example MaxMSP or PureData patch and try the example prompts in Claude
 
 5. **Example prompts**   
