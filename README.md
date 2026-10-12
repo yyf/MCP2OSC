@@ -16,7 +16,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2508.10414-b31b1b.svg)](https://arxiv.org/abs/2508.10414)
 [![OpenReview](https://img.shields.io/badge/NeurIPS-2025-blue)](https://openreview.net/forum?id=XLdFf7Zarw)
-[<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/@MCP2OSC)
+[<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/@OneSystemics/search?query=mcp2osc)
 
 ### Updates
 - 2025/11/14: [OpenReview version](https://openreview.net/forum?id=XLdFf7Zarw) is now available. 
@@ -26,10 +26,10 @@
 Text prompts enable intuitive content creation but may fall short in achieving high precision for intricate tasks; knob or slider controls offer precise adjustments at the cost of increased complexity. To address the gap between knobs and prompts, a new MCP (Model Context Protocol) server and a unique set of prompt design criteria are presented to enable exploring parametric OSC (OpenSoundControl) control by natural language prompts. Demonstrated by 15 practical QA examples with best practices and the generalized prompt templates, this study finds Claude integrated with the MCP2OSC server effective in generating OSC messages by natural language, interpreting, searching, and visualizing OSC messages, validating and debugging OSC messages, and managing OSC address patterns. MCP2OSC enhances human-machine collaboration by harnessing a LLM (Large Language Model) to handle intricate OSC development tasks. It empowers human creativity with an intuitive language interface featuring flexible precision controls: a promptbased OSC tool. This study provides a novel perspective on the creative MCP application at the network protocol level by utilizing LLM’s strength in directly processing and generating human-readable OSC messages. The results suggest its potential for a LLM-based universal control mechanism for multimedia devices.
 
 ### Demo video
-[![Watch the video](https://img.youtube.com/vi/LquHSm8Lquo/sddefault.jpg)](https://www.youtube.com/watch?v=LquHSm8Lquo)
-[![Watch the video](https://img.youtube.com/vi/qQ23gsT5TvE/sddefault.jpg)](https://www.youtube.com/watch?v=qQ23gsT5TvE)
-[![Watch the video](https://img.youtube.com/vi/O0VdbRiggfg/sddefault.jpg)](https://www.youtube.com/watch?v=O0VdbRiggfg)
-[![Watch the video](https://img.youtube.com/vi/t1qOGX-SDuU/sddefault.jpg)](https://www.youtube.com/watch?v=t1qOGX-SDuU)
+[![Watch the video](https://img.youtube.com/vi/aNLcwPu0FhE/sddefault.jpg)](https://www.youtube.com/watch?v=aNLcwPu0FhE)
+[![Watch the video](https://img.youtube.com/vi/pOOh7lFKeK0/sddefault.jpg)](https://www.youtube.com/watch?v=pOOh7lFKeK0)
+[![Watch the video](https://img.youtube.com/vi/xFChD8Murq4/sddefault.jpg)](https://www.youtube.com/watch?v=xFChD8Murq4)
+[![Watch the video](https://img.youtube.com/vi/vTmBJWEwyHs/sddefault.jpg)](https://www.youtube.com/watch?v=vTmBJWEwyHs)
 
 ### Installation
 
