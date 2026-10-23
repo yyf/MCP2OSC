@@ -1,0 +1,12 @@
+{
+  "name": "mcp2osc-threejs-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bridge": "node osc-bridge.js",
+    "start": "node osc-bridge.js"
+  },
+  "dependencies": {
+    "osc-js": "^2.4.1"
+  }
+}

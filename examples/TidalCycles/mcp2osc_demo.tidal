@@ -1,0 +1,15 @@
+-- MCP2OSC demo — TidalCycles
+-- Requires: SuperDirt + BootTidal, and the UDP bridge:
+--   node mcp2osc_to_tidal_bridge.js
+--
+-- Bridge maps:
+--   /mcp2osc/demo/slider  →  /ctrl "slider"  (float)
+--   /mcp2osc/demo/button  →  /ctrl "button"  (int)
+--   /mcp2osc/demo/preset  →  /ctrl "preset" + slider/button
+--
+-- Evaluate this after SuperDirt is running.
+
+d1 $ sound "bd sd"
+  # speed (cF 1 "slider")
+  # gain (cF 0.8 "button")
+  # n (cI 0 "preset")
