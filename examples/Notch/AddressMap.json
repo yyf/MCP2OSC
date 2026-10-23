@@ -1,0 +1,14 @@
+{
+  "app": "Notch",
+  "listenPort": 9500,
+  "addresses": [
+    { "address": "/mcp2osc/demo/slider", "type": "f", "interaction": "slider" },
+    { "address": "/mcp2osc/demo/button", "type": "i", "interaction": "toggle" },
+    { "address": "/mcp2osc/demo/preset", "type": "i", "interaction": "preset" }
+  ],
+  "presets": {
+    "1": { "slider": 0.25, "button": 0, "label": "soft" },
+    "2": { "slider": 0.5, "button": 1, "label": "mid" },
+    "3": { "slider": 1.0, "button": 1, "label": "full" }
+  }
+}
