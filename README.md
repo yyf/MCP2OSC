@@ -86,7 +86,8 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    npm start
    ```
 7. **Creative application examples**
-- The examples folder include MaxMSP, PureData, and SuperCollider patches
+- See [`examples/README.md`](examples/README.md) — per-app folders with a shared demo map (`/mcp2osc/demo/slider`, `/button`, `/preset`)
+- Includes Max, Pd, SuperCollider, TouchDesigner, plus TouchOSC, Open Stage Control, QLab, Unreal, Unity, Godot, openFrameworks, Processing, REAPER, Ableton, Notch, MadMapper
 
 ### Citation
 ```

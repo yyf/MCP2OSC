@@ -1,0 +1,20 @@
+# MCP2OSC demo surface for REAPER
+# Place in REAPER's OSC resource folder and select as OSC device.
+# Listen port: 9500 (MCP2OSC OSC_SEND_PORT)
+
+DEVICE_NAME "MCP2OSC Demo"
+DEVICE_TYPE DEFAULT
+DEVICE_MASTER_VOLUME ""
+
+# Continuous slider 0-1 → track 1 volume (normalized pattern; adjust track index as needed)
+# REAPER uses pattern tokens; verify against Preferences → Control/OSC/web → Pattern help
+n/mcp2osc/demo/slider t/1/volume
+
+# Button toggle → track 1 mute
+b/mcp2osc/demo/button t/1/mute
+
+# Preset index — map in actions or use markers; placeholder comments for user binding:
+# i/mcp2osc/demo/preset 1 → GOTO MARKER 1
+# i/mcp2osc/demo/preset 2 → GOTO MARKER 2
+# i/mcp2osc/demo/preset 3 → GOTO MARKER 3
+# (Bind integer patterns via REAPER OSC action learn if the device file alone is insufficient.)

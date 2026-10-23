@@ -1,0 +1,28 @@
+{
+  "app": "QLab",
+  "oscListenPort": 9500,
+  "fallbackNativePort": 53000,
+  "demoMapping": [
+    {
+      "address": "/mcp2osc/demo/slider",
+      "type": "f",
+      "qlabHint": "Map to cue volume or use native /cue/N/volumeLevel"
+    },
+    {
+      "address": "/mcp2osc/demo/button",
+      "type": "i",
+      "qlabHint": "1 → /go or /cue/N/start ; 0 → /panic or /cue/N/stop"
+    },
+    {
+      "address": "/mcp2osc/demo/preset",
+      "type": "i",
+      "qlabHint": "1|2|3 → /cue/1/start | /cue/2/start | /cue/3/start"
+    }
+  ],
+  "nativeExamples": {
+    "go": { "address": "/go", "args": [] },
+    "panic": { "address": "/panic", "args": [] },
+    "startCue2": { "address": "/cue/2/start", "args": [] },
+    "volumeCue1": { "address": "/cue/1/volumeLevel", "args": [-6.0] }
+  }
+}

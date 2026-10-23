@@ -1,0 +1,55 @@
+{
+  "app": "TouchOSC",
+  "name": "MCP2OSC Demo",
+  "connections": {
+    "udp": {
+      "host": "127.0.0.1",
+      "send": 9501,
+      "receive": 9500
+    }
+  },
+  "controls": [
+    {
+      "name": "Slider",
+      "type": "fader",
+      "address": "/mcp2osc/demo/slider",
+      "valueType": "f",
+      "min": 0,
+      "max": 1,
+      "interaction": "slider"
+    },
+    {
+      "name": "Button",
+      "type": "toggle",
+      "address": "/mcp2osc/demo/button",
+      "valueType": "i",
+      "off": 0,
+      "on": 1,
+      "interaction": "toggle"
+    },
+    {
+      "name": "Preset1",
+      "type": "button",
+      "address": "/mcp2osc/demo/preset",
+      "valueType": "i",
+      "value": 1,
+      "interaction": "preset"
+    },
+    {
+      "name": "Preset2",
+      "type": "button",
+      "address": "/mcp2osc/demo/preset",
+      "valueType": "i",
+      "value": 2,
+      "interaction": "preset"
+    },
+    {
+      "name": "Preset3",
+      "type": "button",
+      "address": "/mcp2osc/demo/preset",
+      "valueType": "i",
+      "value": 3,
+      "interaction": "preset"
+    }
+  ]
+}

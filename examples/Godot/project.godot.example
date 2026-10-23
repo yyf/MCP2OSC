@@ -1,0 +1,13 @@
+; Rename to project.godot after creating a Godot 4 project, or merge settings.
+; Enable GodOSC addon under [editor_plugins] as required by that package.
+
+config_version=5
+
+[application]
+config/name="MCP2OSC Demo"
+run/main_scene="res://Mcp2OscDemo.tscn"
+config/features=PackedStringArray("4.2")
+
+[display]
+window/size/viewport_width=420
+window/size/viewport_height=280

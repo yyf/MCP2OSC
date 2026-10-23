@@ -1,0 +1,9 @@
+{
+  "app": "MadMapper",
+  "listenPort": 9500,
+  "addresses": [
+    { "address": "/mcp2osc/demo/slider", "type": "f", "interaction": "slider", "hint": "Learn to opacity or FX amount" },
+    { "address": "/mcp2osc/demo/button", "type": "i", "interaction": "toggle", "hint": "Learn to bypass / visibility" },
+    { "address": "/mcp2osc/demo/preset", "type": "i", "interaction": "preset", "hint": "Map 1-3 to MadMapper presets" }
+  ]
+}
