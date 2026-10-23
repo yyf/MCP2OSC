@@ -87,7 +87,7 @@ Text prompts enable intuitive content creation but may fall short in achieving h
    ```
 7. **Creative application examples**
 - See [`examples/README.md`](examples/README.md) — per-app folders with a shared demo map (`/mcp2osc/demo/slider`, `/button`, `/preset`)
-- Includes Max, Pd, SuperCollider, TouchDesigner, plus TouchOSC, Open Stage Control, QLab, Unreal, Unity, Godot, openFrameworks, Processing, REAPER, Ableton, Notch, MadMapper
+- Includes Max, Pd, SuperCollider, Sonic Pi, ChucK, Csound, TidalCycles, Three.js, TouchDesigner, TouchOSC, Open Stage Control, QLab, Unreal, Unity, Godot, openFrameworks, Processing, ESP32/Teensy, Raspberry Pi, REAPER, Ableton, Notch, MadMapper, VVVV
 
 ### Citation
 ```
