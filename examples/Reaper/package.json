@@ -1,0 +1,12 @@
+{
+  "name": "mcp2osc-reaper-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install-reaper": "node install.mjs",
+    "start": "node bridge/hub.js",
+    "hub": "node bridge/hub.js",
+    "router": "node bridge/param-router.js",
+    "automation": "node bridge/automation-bridge.js"
+  }
+}

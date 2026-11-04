@@ -1,0 +1,17 @@
+# MCP2OSC — Vocal polish surface for REAPER
+# Prefer Local listen port **8000** when using bridge/param-router.js (MCP2OSC→9500→here).
+# Or listen **9500** directly and send /track/1/fx/.../fxparam/.../value from Claude.
+#
+# FX chain on track 1: 1=MCP2OSC EQ  2=MCP2OSC Dynamics  3=MCP2OSC Delay
+
+DEVICE_NAME "MCP2OSC Vocal Polish"
+DEVICE_TYPE DEFAULT
+DEVICE_TRACK_COUNT 8
+DEVICE_FX_COUNT 8
+DEVICE_FX_PARAM_COUNT 32
+
+TRACK_VOLUME n/track/@/volume
+TRACK_VOLUME f/track/@/volume/db
+TRACK_MUTE b/track/@/mute
+
+FX_PARAM_VALUE n/track/@/fx/@/fxparam/@/value

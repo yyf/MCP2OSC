@@ -1,0 +1,100 @@
+{
+  "name": "mcp2osc-reaper-vocal-polish",
+  "version": 1,
+  "task": "Vocal / dialogue polish with volume-ride automation",
+  "description": "Common tedious DAW task: HPF + shape EQ, compress for consistency, light slap delay, then edit volume automation to ride loud/quiet phrases.",
+  "ports": {
+    "reaper_osc": 9500,
+    "automation_bridge": 9502,
+    "host": "127.0.0.1"
+  },
+  "fx_chain": [
+    { "slot": 1, "jsfx": "mcp2osc_eq", "role": "EQ" },
+    { "slot": 2, "jsfx": "mcp2osc_dynamics", "role": "Dynamics" },
+    { "slot": 3, "jsfx": "mcp2osc_delay", "role": "Delay" }
+  ],
+  "addresses": {
+    "eq": [
+      { "address": "/mcp2osc/reaper/eq/hpf_freq", "type": "f", "norm": true, "maps_to": "20–400 Hz", "vocal_default_norm": 0.158 },
+      { "address": "/mcp2osc/reaper/eq/hpf_enable", "type": "f", "norm": true, "maps_to": "off/on", "vocal_default_norm": 1.0 },
+      { "address": "/mcp2osc/reaper/eq/low_gain", "type": "f", "norm": true, "maps_to": "−12…+12 dB", "vocal_default_norm": 0.42 },
+      { "address": "/mcp2osc/reaper/eq/mid_gain", "type": "f", "norm": true, "maps_to": "−12…+12 dB", "vocal_default_norm": 0.58 },
+      { "address": "/mcp2osc/reaper/eq/mid_freq", "type": "f", "norm": true, "maps_to": "300–6000 Hz", "vocal_default_norm": 0.35 },
+      { "address": "/mcp2osc/reaper/eq/high_gain", "type": "f", "norm": true, "maps_to": "−12…+12 dB", "vocal_default_norm": 0.55 },
+      { "address": "/mcp2osc/reaper/eq/output", "type": "f", "norm": true, "maps_to": "−12…+12 dB", "vocal_default_norm": 0.5 }
+    ],
+    "dynamics": [
+      { "address": "/mcp2osc/reaper/dyn/threshold", "type": "f", "norm": true, "maps_to": "−60…0 dB", "vocal_default_norm": 0.7 },
+      { "address": "/mcp2osc/reaper/dyn/ratio", "type": "f", "norm": true, "maps_to": "1–20", "vocal_default_norm": 0.16 },
+      { "address": "/mcp2osc/reaper/dyn/attack", "type": "f", "norm": true, "maps_to": "0.1–100 ms", "vocal_default_norm": 0.1 },
+      { "address": "/mcp2osc/reaper/dyn/release", "type": "f", "norm": true, "maps_to": "10–1000 ms", "vocal_default_norm": 0.09 },
+      { "address": "/mcp2osc/reaper/dyn/makeup", "type": "f", "norm": true, "maps_to": "0–24 dB", "vocal_default_norm": 0.125 },
+      { "address": "/mcp2osc/reaper/dyn/mix", "type": "f", "norm": true, "maps_to": "0–1", "vocal_default_norm": 1.0 }
+    ],
+    "delay": [
+      { "address": "/mcp2osc/reaper/delay/time", "type": "f", "norm": true, "maps_to": "1–2000 ms", "vocal_default_norm": 0.045 },
+      { "address": "/mcp2osc/reaper/delay/feedback", "type": "f", "norm": true, "maps_to": "0–0.95", "vocal_default_norm": 0.2 },
+      { "address": "/mcp2osc/reaper/delay/mix", "type": "f", "norm": true, "maps_to": "0–1", "vocal_default_norm": 0.12 },
+      { "address": "/mcp2osc/reaper/delay/hp", "type": "f", "norm": true, "maps_to": "80–4000 Hz", "vocal_default_norm": 0.08 }
+    ],
+    "automation": [
+      {
+        "address": "/mcp2osc/reaper/auto/volume",
+        "port": 9502,
+        "args": ["f time_sec", "f value_norm_0_1"],
+        "description": "Insert track volume envelope point at timeline time"
+      },
+      {
+        "address": "/mcp2osc/reaper/auto/volume_db",
+        "port": 9502,
+        "args": ["f time_sec", "f value_db"],
+        "description": "Insert track volume envelope point (dB)"
+      },
+      {
+        "address": "/mcp2osc/reaper/auto/fxparam",
+        "port": 9502,
+        "args": ["i fx_slot", "i param_index", "f time_sec", "f value_norm"],
+        "description": "Insert FX parameter envelope point"
+      },
+      {
+        "address": "/mcp2osc/reaper/auto/clear",
+        "port": 9502,
+        "args": ["i track (default 1)"],
+        "description": "Clear queued automation points for track"
+      },
+      {
+        "address": "/mcp2osc/reaper/auto/apply",
+        "port": 9502,
+        "args": [],
+        "description": "Flag queue ready — run Lua action MCP2OSC: Apply automation queue"
+      }
+    ]
+  },
+  "vocal_polish_preset": {
+    "label": "Podcast / dialogue starting point",
+    "batch": [
+      { "address": "/mcp2osc/reaper/eq/hpf_enable", "args": [1.0] },
+      { "address": "/mcp2osc/reaper/eq/hpf_freq", "args": [0.158] },
+      { "address": "/mcp2osc/reaper/eq/low_gain", "args": [0.42] },
+      { "address": "/mcp2osc/reaper/eq/mid_gain", "args": [0.58] },
+      { "address": "/mcp2osc/reaper/eq/high_gain", "args": [0.55] },
+      { "address": "/mcp2osc/reaper/dyn/threshold", "args": [0.7] },
+      { "address": "/mcp2osc/reaper/dyn/ratio", "args": [0.16] },
+      { "address": "/mcp2osc/reaper/dyn/attack", "args": [0.1] },
+      { "address": "/mcp2osc/reaper/dyn/release", "args": [0.09] },
+      { "address": "/mcp2osc/reaper/dyn/makeup", "args": [0.125] },
+      { "address": "/mcp2osc/reaper/dyn/mix", "args": [1.0] },
+      { "address": "/mcp2osc/reaper/delay/time", "args": [0.045] },
+      { "address": "/mcp2osc/reaper/delay/feedback", "args": [0.2] },
+      { "address": "/mcp2osc/reaper/delay/mix", "args": [0.12] }
+    ]
+  },
+  "norm_helpers": {
+    "eq_hpf_hz": "norm = (hz - 20) / 380",
+    "eq_gain_db": "norm = (db + 12) / 24",
+    "dyn_threshold_db": "norm = (db + 60) / 60",
+    "dyn_ratio": "norm = (ratio - 1) / 19",
+    "delay_time_ms": "norm = (ms - 1) / 1999",
+    "volume_db_to_norm": "REAPER fader: approx norm = 10^((db-12)/20) clamped — prefer /auto/volume_db"
+  }
+}
