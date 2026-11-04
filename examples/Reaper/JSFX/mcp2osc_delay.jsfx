@@ -1,0 +1,48 @@
+desc: MCP2OSC Delay
+// Echo / slap delay for MCP2OSC vocal polish demos.
+// Controlled via /mcp2osc/reaper/delay/*
+
+slider1:90<1,2000,1>Time (ms)
+slider2:0.25<0,0.95,0.01>Feedback
+slider3:0.15<0,1,0.01>Mix
+slider4:400<80,4000,1>Feedback HP (Hz)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+  maxlen = floor(2 * srate) + 8;
+  buf_l = 100000;
+  buf_r = buf_l + maxlen + 16;
+  memset(buf_l, 0, maxlen);
+  memset(buf_r, 0, maxlen);
+  wpos = 0;
+  lp_l = lp_r = 0;
+
+@slider
+  delay_samp = min(maxlen - 4, max(1, floor(slider1 * 0.001 * srate)));
+  fb = slider2;
+  mix = slider3;
+  hp_c = exp(-2 * $pi * max(40, slider4) / srate);
+
+@sample
+  rpos = wpos - delay_samp;
+  rpos < 0 ? rpos += maxlen;
+  dl = buf_l[rpos];
+  dr = buf_r[rpos];
+
+  // one-pole LPF then subtract → feedback high-pass
+  lp_l = hp_c * lp_l + (1 - hp_c) * dl;
+  lp_r = hp_c * lp_r + (1 - hp_c) * dr;
+  fb_l = (dl - lp_l) * fb;
+  fb_r = (dr - lp_r) * fb;
+
+  buf_l[wpos] = spl0 + fb_l;
+  buf_r[wpos] = spl1 + fb_r;
+  wpos += 1;
+  wpos >= maxlen ? wpos = 0;
+
+  spl0 = spl0 * (1 - mix) + dl * mix;
+  spl1 = spl1 * (1 - mix) + dr * mix;

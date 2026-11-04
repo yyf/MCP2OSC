@@ -1,0 +1,63 @@
+desc: MCP2OSC Dynamics
+// Soft-knee compressor for MCP2OSC vocal polish demos.
+// Controlled via /mcp2osc/reaper/dyn/*
+
+slider1:-18<-60,0,0.1>Threshold (dB)
+slider2:4<1,20,0.1>Ratio
+slider3:10<0.1,100,0.1>Attack (ms)
+slider4:100<10,1000,1>Release (ms)
+slider5:6<0,12,0.1>Knee (dB)
+slider6:3<0,24,0.1>Makeup (dB)
+slider7:1<0,1,0.01>Mix
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+  env_db = -90;
+  sr_inv = 1 / srate;
+
+@slider
+  thr = slider1;
+  ratio = max(1, slider2);
+  knee = max(0, slider5);
+  // one-pole coeffs from time constants
+  att_c = exp(-1 / max(1, slider3 * 0.001 * srate));
+  rel_c = exp(-1 / max(1, slider4 * 0.001 * srate));
+  makeup = 10 ^ (slider6 / 20);
+  mix = slider7;
+
+@sample
+  // peak detect (stereo max)
+  abs_l = abs(spl0);
+  abs_r = abs(spl1);
+  peak = max(abs_l, abs_r);
+  peak < 1e-9 ? peak = 1e-9;
+  det_db = 20 * log10(peak);
+
+  // envelope follower in dB
+  det_db > env_db ? (
+    env_db = att_c * env_db + (1 - att_c) * det_db;
+  ) : (
+    env_db = rel_c * env_db + (1 - rel_c) * det_db;
+  );
+
+  // soft-knee gain computer
+  over = env_db - thr;
+  knee > 0 && over > -knee*0.5 && over < knee*0.5 ? (
+    // inside knee
+    x = over + knee * 0.5;
+    gr = (1/ratio - 1) * (x * x) / (2 * knee);
+  ) : over > knee * 0.5 ? (
+    gr = (1/ratio - 1) * over;
+  ) : (
+    gr = 0;
+  );
+
+  g = 10 ^ (gr / 20) * makeup;
+  wet_l = spl0 * g;
+  wet_r = spl1 * g;
+  spl0 = spl0 * (1 - mix) + wet_l * mix;
+  spl1 = spl1 * (1 - mix) + wet_r * mix;

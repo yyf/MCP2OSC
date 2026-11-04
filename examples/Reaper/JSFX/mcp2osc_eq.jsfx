@@ -1,0 +1,120 @@
+desc: MCP2OSC EQ
+// Vocal / dialogue EQ for MCP2OSC. Chain order: EQ → Dynamics → Delay.
+// Controlled via ReaperOSC addresses under /mcp2osc/reaper/eq/*
+
+slider1:80<20,400,1>HPF Freq (Hz)
+slider2:1<0,1,1{Off,On}>HPF Enable
+slider3:0<-12,12,0.1>Low Shelf (dB)
+slider4:200<80,400,1>Low Shelf Freq (Hz)
+slider5:0<-12,12,0.1>Mid Gain (dB)
+slider6:1200<300,6000,1>Mid Freq (Hz)
+slider7:1.0<0.3,8,0.01>Mid Q
+slider8:0<-12,12,0.1>High Shelf (dB)
+slider9:0<-12,12,0.1>Output (dB)
+
+in_pin:left input
+in_pin:right input
+out_pin:left output
+out_pin:right output
+
+@init
+  hp_z1l = hp_z2l = hp_z1r = hp_z2r = 0;
+  ls_z1l = ls_z2l = ls_z1r = ls_z2r = 0;
+  pk_z1l = pk_z2l = pk_z1r = pk_z2r = 0;
+  hs_z1l = hs_z2l = hs_z1r = hs_z2r = 0;
+
+@slider
+  // --- high-pass ---
+  w0 = 2 * $pi * max(20, slider1) / srate;
+  cosw = cos(w0); sinw = sin(w0);
+  alpha = sinw / (2 * 0.7071);
+  a0 = 1 + alpha;
+  hp_b0 = ((1 + cosw) * 0.5) / a0;
+  hp_b1 = (-(1 + cosw)) / a0;
+  hp_b2 = ((1 + cosw) * 0.5) / a0;
+  hp_a1 = (-2 * cosw) / a0;
+  hp_a2 = (1 - alpha) / a0;
+
+  // --- low shelf ---
+  A = 10 ^ (slider3 / 40);
+  w0 = 2 * $pi * max(20, slider4) / srate;
+  cosw = cos(w0); sinw = sin(w0);
+  alpha = sinw / 2 * sqrt((A + 1/A) * (1/0.8 - 1) + 2);
+  twoS = 2 * sqrt(A) * alpha;
+  a0 = (A + 1) + (A - 1) * cosw + twoS;
+  ls_b0 = (A * ((A + 1) - (A - 1) * cosw + twoS)) / a0;
+  ls_b1 = (2 * A * ((A - 1) - (A + 1) * cosw)) / a0;
+  ls_b2 = (A * ((A + 1) - (A - 1) * cosw - twoS)) / a0;
+  ls_a1 = (-2 * ((A - 1) + (A + 1) * cosw)) / a0;
+  ls_a2 = ((A + 1) + (A - 1) * cosw - twoS) / a0;
+
+  // --- mid peak ---
+  A = 10 ^ (slider5 / 40);
+  w0 = 2 * $pi * max(20, slider6) / srate;
+  cosw = cos(w0); sinw = sin(w0);
+  alpha = sinw / (2 * max(0.1, slider7));
+  a0 = 1 + alpha / A;
+  pk_b0 = (1 + alpha * A) / a0;
+  pk_b1 = (-2 * cosw) / a0;
+  pk_b2 = (1 - alpha * A) / a0;
+  pk_a1 = (-2 * cosw) / a0;
+  pk_a2 = (1 - alpha / A) / a0;
+
+  // --- high shelf @ 8 kHz ---
+  A = 10 ^ (slider8 / 40);
+  w0 = 2 * $pi * 8000 / srate;
+  cosw = cos(w0); sinw = sin(w0);
+  alpha = sinw / 2 * sqrt((A + 1/A) * (1/0.8 - 1) + 2);
+  twoS = 2 * sqrt(A) * alpha;
+  a0 = (A + 1) - (A - 1) * cosw + twoS;
+  hs_b0 = (A * ((A + 1) + (A - 1) * cosw + twoS)) / a0;
+  hs_b1 = (-2 * A * ((A - 1) + (A + 1) * cosw)) / a0;
+  hs_b2 = (A * ((A + 1) + (A - 1) * cosw - twoS)) / a0;
+  hs_a1 = (2 * ((A - 1) - (A + 1) * cosw)) / a0;
+  hs_a2 = ((A + 1) - (A - 1) * cosw - twoS) / a0;
+
+  out_gain = 10 ^ (slider9 / 20);
+
+@sample
+  xl = spl0; xr = spl1;
+
+  slider2 > 0.5 ? (
+    yl = hp_b0*xl + hp_z1l;
+    hp_z1l = hp_b1*xl - hp_a1*yl + hp_z2l;
+    hp_z2l = hp_b2*xl - hp_a2*yl;
+    xl = yl;
+    yr = hp_b0*xr + hp_z1r;
+    hp_z1r = hp_b1*xr - hp_a1*yr + hp_z2r;
+    hp_z2r = hp_b2*xr - hp_a2*yr;
+    xr = yr;
+  );
+
+  yl = ls_b0*xl + ls_z1l;
+  ls_z1l = ls_b1*xl - ls_a1*yl + ls_z2l;
+  ls_z2l = ls_b2*xl - ls_a2*yl;
+  xl = yl;
+  yr = ls_b0*xr + ls_z1r;
+  ls_z1r = ls_b1*xr - ls_a1*yr + ls_z2r;
+  ls_z2r = ls_b2*xr - ls_a2*yr;
+  xr = yr;
+
+  yl = pk_b0*xl + pk_z1l;
+  pk_z1l = pk_b1*xl - pk_a1*yl + pk_z2l;
+  pk_z2l = pk_b2*xl - pk_a2*yl;
+  xl = yl;
+  yr = pk_b0*xr + pk_z1r;
+  pk_z1r = pk_b1*xr - pk_a1*yr + pk_z2r;
+  pk_z2r = pk_b2*xr - pk_a2*yr;
+  xr = yr;
+
+  yl = hs_b0*xl + hs_z1l;
+  hs_z1l = hs_b1*xl - hs_a1*yl + hs_z2l;
+  hs_z2l = hs_b2*xl - hs_a2*yl;
+  xl = yl;
+  yr = hs_b0*xr + hs_z1r;
+  hs_z1r = hs_b1*xr - hs_a1*yr + hs_z2r;
+  hs_z2r = hs_b2*xr - hs_a2*yr;
+  xr = yr;
+
+  spl0 = xl * out_gain;
+  spl1 = xr * out_gain;

@@ -49,7 +49,7 @@ See [`shared/osc-map.json`](shared/osc-map.json).
 | [Processing](Processing/) | Minimal sketch |
 | [ESP32](ESP32/) | CNMAT OSC sketch (ESP32 / Teensy notes) |
 | [RaspberryPi](RaspberryPi/) | `python-osc` receiver (+ GPIO hook) |
-| [Reaper](Reaper/) | `.ReaperOSC` surface map |
+| [Reaper](Reaper/) | Vocal-polish JSFX trio — `node install.mjs` then `npm start` |
 | [Ableton](Ableton/) | Max for Live / OSC notes |
 | [Notch](Notch/) | OSC In setup |
 | [MadMapper](MadMapper/) | OSC control notes |
