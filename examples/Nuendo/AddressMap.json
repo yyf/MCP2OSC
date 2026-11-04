@@ -1,0 +1,30 @@
+{
+  "app": "Nuendo",
+  "requires": "ADM Authoring → OSC (external) renderer",
+  "listenPort": 9500,
+  "note": "Nuendo OSC is object/ADM-oriented. Keep MCP2OSC demo addresses; rewrite to your renderer’s ADM-OSC paths.",
+  "addresses": [
+    {
+      "address": "/mcp2osc/demo/slider",
+      "type": "f",
+      "interaction": "slider",
+      "mapsTo": "object gain, size, or normalized position axis (0–1)"
+    },
+    {
+      "address": "/mcp2osc/demo/button",
+      "type": "i",
+      "interaction": "toggle",
+      "mapsTo": "object enable / mute in external renderer"
+    },
+    {
+      "address": "/mcp2osc/demo/preset",
+      "type": "i",
+      "interaction": "preset",
+      "presets": {
+        "1": { "slider": 0.25, "button": 0, "label": "soft" },
+        "2": { "slider": 0.5, "button": 1, "label": "mid" },
+        "3": { "slider": 1.0, "button": 1, "label": "full" }
+      }
+    }
+  ]
+}

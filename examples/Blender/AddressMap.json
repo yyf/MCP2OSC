@@ -1,0 +1,29 @@
+{
+  "app": "Blender",
+  "listenPort": 9500,
+  "script": "mcp2osc_demo.py",
+  "addresses": [
+    {
+      "address": "/mcp2osc/demo/slider",
+      "type": "f",
+      "interaction": "slider",
+      "mapsTo": "Cube.scale (0.25–2.0 from 0–1)"
+    },
+    {
+      "address": "/mcp2osc/demo/button",
+      "type": "i",
+      "interaction": "toggle",
+      "mapsTo": "Cube hide_viewport / hide_render (0=hidden, 1=visible)"
+    },
+    {
+      "address": "/mcp2osc/demo/preset",
+      "type": "i",
+      "interaction": "preset",
+      "presets": {
+        "1": { "slider": 0.25, "button": 0, "label": "soft" },
+        "2": { "slider": 0.5, "button": 1, "label": "mid" },
+        "3": { "slider": 1.0, "button": 1, "label": "full" }
+      }
+    }
+  ]
+}

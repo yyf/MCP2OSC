@@ -51,6 +51,9 @@ See [`shared/osc-map.json`](shared/osc-map.json).
 | [RaspberryPi](RaspberryPi/) | `python-osc` receiver (+ GPIO hook) |
 | [Reaper](Reaper/) | Vocal-polish JSFX trio — `node install.mjs` then `npm start` |
 | [Ableton](Ableton/) | Max for Live / OSC notes |
+| [Blender](Blender/) | Text Editor script (`mcp2osc_demo.py`) |
+| [OBS](OBS/) | OSC-for-OBS / websocket bridge notes |
+| [Nuendo](Nuendo/) | ADM Authoring → OSC (external) map |
 | [Notch](Notch/) | OSC In setup |
 | [MadMapper](MadMapper/) | OSC control notes |
 | [VVVV](VVVV/) | gamma OSCServer / OSCReceiver kit |
