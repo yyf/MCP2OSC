@@ -1,0 +1,31 @@
+{
+  "app": "OBSStudio",
+  "requires": "OSC for OBS (or OBSC) + obs-websocket",
+  "listenPort": 9500,
+  "note": "OBS does not speak OSC natively; bridge translates these addresses to websocket actions.",
+  "addresses": [
+    {
+      "address": "/mcp2osc/demo/slider",
+      "type": "f",
+      "interaction": "slider",
+      "mapsTo": "source volume or filter opacity (0–1)"
+    },
+    {
+      "address": "/mcp2osc/demo/button",
+      "type": "i",
+      "interaction": "toggle",
+      "mapsTo": "mute/unmute or show/hide source"
+    },
+    {
+      "address": "/mcp2osc/demo/preset",
+      "type": "i",
+      "interaction": "preset",
+      "mapsTo": "scene switch Soft|Mid|Full",
+      "presets": {
+        "1": { "scene": "Mcp2Osc_Soft", "slider": 0.25, "button": 0 },
+        "2": { "scene": "Mcp2Osc_Mid", "slider": 0.5, "button": 1 },
+        "3": { "scene": "Mcp2Osc_Full", "slider": 1.0, "button": 1 }
+      }
+    }
+  ]
+}
