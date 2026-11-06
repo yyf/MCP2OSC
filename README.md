@@ -14,7 +14,7 @@
 
 <br>
 
-![MCP2OSC NeurIPS poster](docs/MCP2OSC_neurips_poster_v7/MCP2OSC_neurips_poster_v7.001.jpeg)
+![MCP2OSC NeurIPS poster](assets/MCP2OSC_neurips_poster_v7.001.jpeg)
 
 <br>
 
