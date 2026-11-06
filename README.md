@@ -14,6 +14,10 @@
 
 <br>
 
+![MCP2OSC NeurIPS poster](docs/MCP2OSC_neurips_poster_v7/MCP2OSC_neurips_poster_v7.001.jpeg)
+
+<br>
+
 [![arXiv](https://img.shields.io/badge/arXiv-2508.10414-b31b1b.svg)](https://arxiv.org/abs/2508.10414)
 [![OpenReview](https://img.shields.io/badge/NeurIPS-2025-blue)](https://openreview.net/forum?id=XLdFf7Zarw)
 [<img src="https://img.shields.io/badge/YouTube-Video-red.svg?logo=youtube">](https://www.youtube.com/@OneSystemics/search?query=mcp2osc)
